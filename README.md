@@ -1,78 +1,54 @@
-# SYC OS Form Assistant (POC)
+# SYC filing-flow presentation
 
-A front-end-only React prototype of a Syariah Court of Singapore **Originating
-Summons** (Muslim divorce) filing assistant. A scripted, bilingual (EN/BM) chat
-guides the litigant through eight steps and progressively fills a live "Originating
-Summons" document on the left.
+The app presents the supplied SYC ideal flow in the original repository's maroon/red theme, adapted to the latest stakeholder notes. It is a local, frontend-only experience: prefill, retrieval, and document extraction are deterministic fixtures, not live integrations. The Originating Summons panel is read-only; applicant answers and corrections go through Aisha's chat.
 
-This rebuild adds **real GenAI**:
-
-- The free-text chat box is answered by **OpenAI `gpt-5.5`**.
-- At each document-backed step the assistant asks you to **upload that step's
-  supporting document** (one at a time, not a big bundle). `gpt-5.5` **reads the
-  document, extracts the fields, and fact-checks** each entry against the image,
-  showing a per-field ✓ / ! result.
-- If you don't have a document yet, **save & continue later** — the in-progress
-  application is stored and you can resume where you left off.
-
-## Quick start
+## Run
 
 ```bash
 npm install
-# one-time, for generating the sample documents:
-npx playwright install chromium
-
-# add your key (already provided in .env.local for this POC)
-#   VITE_OPENAI_API_KEY=sk-...
-#   VITE_OPENAI_MODEL=gpt-5.5   (optional override)
-
-npm run gen:resources   # writes specimen documents into resources/
-npm run dev             # open the printed http://localhost:5173
+npm run dev
 ```
 
-Walk the flow on the right. When prompted, click **Choose file** and pick one of
-the documents in [`resources/`](resources/) (e.g. `marriage-cert-romm.png` at the
-Marriage step). The AI reads it, fills the form on the left, and shows its
-fact-check. Use **save & continue later** at any upload to test resume — reload the
-page and a resume banner appears.
+Open the local URL printed by Vite, normally `http://localhost:5173`. Alternatively run `./start.sh`. No `.env.local`, API key, backend, or runtime internet connection is needed. Keep this presentation on a controlled local network; do not publish it as a real filing service.
 
-## ⚠️ Security note
+The applicant sees a Singpass-style entry screen, e-Services dashboard, and divorce-service card before Aisha's filing conversation. These screens are simulated; no actual identity login occurs.
 
-This is a **front-end-only POC**. `VITE_OPENAI_API_KEY` is bundled into the client
-JavaScript and is visible to anyone who can open the app. This is acceptable for a
-local demo **only** — never ship a real key this way. A production build must proxy
-OpenAI calls through a backend that holds the key.
+## Demonstration cases
 
-## Project layout
+There is no scenario chooser or POC indicator in the applicant interface. A presenter chooses a case with the initial local URL:
+
+| URL suffix | Evidence to upload | Expected result |
+| --- | --- | --- |
+| `?case=10` (default) | `Scenario10_ROMM_1.jpeg` and `_2.jpeg`; then `Scenario10_Form13.docx` and `Scenario10_Form14.docx` | Matching property plan; no discrepancy warning |
+| `?case=9` | `Scenario9_ROMM_1.jpeg` and `_2.jpeg`; then both `Form 13_page 1.jpg` and `Form 13_page 2.jpg` | Handwritten Canberra address differs from HDB/OS Tampines address; confirmation is needed to continue |
+| `?case=4` | `Scenario4_ROMM_1.jpeg` and `_2.jpeg`; then `Scenario4_Form11_PP.docx` | Haziq/Aisyah discrepancies and per-child custody review |
+| `?case=1` | `Scenario1_ROMM_1.jpeg` and `_2.jpeg` | Valid MCP; high-risk indicator without blocking |
+| `?case=1&eligibility=expired` | None; filing stops before consent | MCP outside six-month period |
+
+The supplied evidence is under `docs/Scenario N/`. Corrected recovery documents are under `resources/`: `scenario4-parenting-plan-corrected.pdf` and `scenario9-form13-corrected.pdf`. The marriage certificate is mandatory in every case; Parenting and Property Plans are mandatory when those sections apply. Discrepancies are polite warnings with chat-based correction, re-upload, or **Ignore and continue** after a confirmation dialog. Missing documents and expired MCP cannot be skipped.
+
+The Dashboard link saves/returns to the current draft in this browser. Language switching restarts the journey. The OS panel has no edit controls. Payment and completion screens demonstrate the next user steps; they do not perform a transaction or real court submission.
+
+## Verify
+
+```bash
+npm test
+npm run test:e2e
+npm run build
+```
+
+Browser tests need Chromium installed once with `npx playwright install chromium` and its system libraries. The production build itself does not need browser-test dependencies or an API key.
+
+## Code map
 
 | Path | Purpose |
 | --- | --- |
-| `src/prompt.jsx` | **All LLM prompts** — navigator persona, document read/extract/fact-check, field specs |
-| `src/lib/openai.js` | OpenAI Responses API client (`askAssistant`, `readDocument`) |
-| `src/lib/docToImage.js` | Turns an uploaded image/PDF into an image for vision |
-| `src/lib/session.js` | localStorage save / resume |
-| `src/state/createEngine.js` | The scripted 8-step flow (ported from the original POC) |
-| `src/components/` | `TopBar`, `OsForm` (left doc), `ChatPanel`, `UploadPrompt`, `ResumeBanner` |
-| `src/i18n.js` | EN / BM string dictionary |
-| `tools/doc-templates.mjs` + `tools/gen-resources.mjs` | Generate the specimen documents |
-| `resources/` | Generated sample documents to upload during the demo |
+| `docs/syc-form-assistant 1 (ideal happy flow).html` | Preserved reference HTML |
+| `src/IdealFlowApp.jsx` | Applies the red palette and mounts the adapted flow |
+| `src/idealFlowEnhancements.js` | Chat journey, mandatory uploads, comparisons, warning confirmation, draft resume and follow-up screens |
+| `src/data/filingCases.js` | Selects local case fixture before the applicant UI mounts |
+| `e2e/stakeholder-flow.spec.js` | Browser coverage for the stakeholder cases |
 
-## Sample documents
+See `docs/POC_REQUIREMENTS_AND_ACCEPTANCE.md` and `docs/DEMO_SCRIPT.md` for acceptance and presenter steps.
 
-`resources/` contains specimen ROMM marriage certificate, NRICs, MCP certificate,
-children's birth certificates, HDB and CPF statements, and talak evidence — all for
-the fictional demo case and clearly watermarked **"SPECIMEN — NOT A GENUINE
-DOCUMENT"**. They exist purely so the AI document flow has something to read; they
-are not real government documents. Regenerate them with `npm run gen:resources`.
-
-## How the AI document check works
-
-1. `UploadPrompt` converts the chosen file to an image (`docToImage.js`).
-2. `readDocument()` sends the image + the prompt from `prompt.jsx` to `gpt-5.5` with
-   a JSON schema, asking it to (a) identify the document, (b) extract the section's
-   fields, and (c) fact-check each field (`verified` / `review`) against the image.
-3. The extracted values fill the Originating Summons form; the fact-check is shown
-   in the chat; the file is kept as an attachment.
-
-The original single-file prototype is preserved at
-[`syc-form-assistant.html`](syc-form-assistant.html) for reference.
+This is not production software: fixture extraction recognizes supplied filenames rather than document contents, browser storage is not secure case persistence, and authentication, server validation, real integrations, and payment still need to be built.

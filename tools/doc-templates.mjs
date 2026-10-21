@@ -236,4 +236,55 @@ export const templates = [
         <div style="margin-top:40px;font-size:12px;color:#555">__________________________<br>Declarant signature</div>
       </div>`),
   },
+
+  // ── Scenario 4 corrected recovery fixture ──
+  {
+    name: 'scenario4-parenting-plan-corrected', format: 'pdf-text',
+    width: 820, height: 1040,
+    html: page(820, 1040, `
+      <div style="padding:42px 54px">
+        <div class="gov" style="font-size:12px">FORM 11</div>
+        <div class="gov" style="font-size:15px;font-weight:700">IN THE SYARIAH COURT OF THE REPUBLIC OF SINGAPORE</div>
+        <div class="gov" style="font-size:19px;font-weight:700;color:#7a1f17;margin-top:12px">CORRECTED AGREED PARENTING PLAN</div>
+        <div class="rule"></div>
+        <div class="row"><div class="k">Plaintiff</div><div class="v">Zulkifli Bin Rashid (S9678901G)</div></div>
+        <div class="row"><div class="k">Defendant</div><div class="v">Norlina Binte Salim (S9789012H)</div></div>
+        <h3 style="margin:22px 0 8px;color:#7a1f17">1. Child of the current marriage</h3>
+        <div class="row"><div class="k">Name</div><div class="v">Aisyah Binte Zulkifli</div></div>
+        <div class="row"><div class="k">Birth Certificate</div><div class="v">T18123456B</div></div>
+        <div class="row"><div class="k">Age / Gender</div><div class="v">8 / Female</div></div>
+        <h3 style="margin:22px 0 8px;color:#7a1f17">2. Agreed arrangements</h3>
+        <div class="row"><div class="k">Residence</div><div class="v">765 Pasir Ris Street 71 with the Plaintiff</div></div>
+        <div class="row"><div class="k">Caregiver</div><div class="v">Plaintiff</div></div>
+        <div class="row"><div class="k">Education</div><div class="v">Continue at current school</div></div>
+        <div class="row"><div class="k">Custody</div><div class="v">Joint custody</div></div>
+        <div class="row"><div class="k">Care and control</div><div class="v">Plaintiff</div></div>
+        <div class="row"><div class="k">Access</div><div class="v">Reasonable weekend and school-holiday access to Defendant</div></div>
+        <div style="margin-top:42px;display:flex;justify-content:space-between;font-size:12px;color:#555"><div>__________________________<br>Plaintiff</div><div>__________________________<br>Defendant</div></div>
+      </div>`),
+  },
+
+  // ── Scenario 9 corrected recovery fixture ──
+  {
+    name: 'scenario9-form13-corrected', format: 'pdf-text',
+    width: 820, height: 1040,
+    html: page(820, 1040, `
+      <div style="padding:42px 54px">
+        <div class="gov" style="font-size:12px">FORM 13</div>
+        <div class="gov" style="font-size:15px;font-weight:700">IN THE SYARIAH COURT OF THE REPUBLIC OF SINGAPORE</div>
+        <div class="gov" style="font-size:18px;font-weight:700;color:#7a1f17;margin-top:12px">CORRECTED AGREED MATRIMONIAL PROPERTY PLAN</div>
+        <div class="rule"></div>
+        <div class="row"><div class="k">Plaintiff</div><div class="v">Taufiq Bin Sallehin (S8678901S)</div></div>
+        <div class="row"><div class="k">Defendant</div><div class="v">Husna Binte Karim (S8789012T)</div></div>
+        <h3 style="margin:22px 0 8px;color:#7a1f17">1. Particulars of the property</h3>
+        <div class="row"><div class="k">Flat address</div><div class="v">18 Tampines Street 42, #05-118, Singapore 529201</div></div>
+        <div class="row"><div class="k">Name of lessees</div><div class="v">Taufiq Bin Sallehin and Husna Binte Karim</div></div>
+        <div class="row"><div class="k">Holding</div><div class="v">Joint tenancy</div></div>
+        <div class="row"><div class="k">Flat type</div><div class="v">4-room</div></div>
+        <h3 style="margin:22px 0 8px;color:#7a1f17">2. Agreed arrangement</h3>
+        <div class="row"><div class="k">Selected option</div><div class="v">Option 5 — Defendant's share transferred to Plaintiff</div></div>
+        <div class="row"><div class="k">Defendant's agreement</div><div class="v">Confirmed</div></div>
+        <div style="margin-top:42px;display:flex;justify-content:space-between;font-size:12px;color:#555"><div>__________________________<br>Plaintiff</div><div>__________________________<br>Defendant</div></div>
+      </div>`),
+  },
 ];

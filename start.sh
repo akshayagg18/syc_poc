@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
-# Start the SYC OS Form Assistant (POC).
-# Installs deps on first run, generates the specimen documents if missing,
-# then launches the Vite dev server.
+# Start the local SYC filing presentation.
+# Installs dependencies on first run, then launches the offline fixture app.
 set -euo pipefail
 
 cd "$(dirname "$0")"
@@ -12,23 +11,9 @@ if [ ! -d node_modules ]; then
   npm install
 fi
 
-# 2. API key check
-if [ ! -f .env.local ] && [ -z "${VITE_OPENAI_API_KEY:-}" ]; then
-  echo "⚠  No .env.local found. Create one with:"
-  echo "     VITE_OPENAI_API_KEY=sk-..."
-  echo "   (AI features are disabled without it.)"
-fi
-
-# 3. Specimen documents (need Chromium once)
-if [ ! -d resources ] || [ -z "$(ls -A resources 2>/dev/null)" ]; then
-  echo "→ Generating specimen documents…"
-  npx playwright install chromium >/dev/null 2>&1 || true
-  npm run gen:resources
-fi
-
-# 4. Run
-echo "→ Starting dev server on port 5555…"
-npm run dev -- --host 0.0.0.0 --port 5555 &
+# 2. Run — no .env.local, API key, browser download, or network is required.
+echo "→ Starting local dev server at http://127.0.0.1:5555…"
+npm run dev -- --host 127.0.0.1 --port 5555 &
 dev_pid=$!
 
 cleanup() {

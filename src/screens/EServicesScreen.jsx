@@ -42,12 +42,12 @@ export default function EServicesScreen({ onNav }) {
                       <p className="es-p">Filing fee: $12</p>
                     </div>
                     <div>
-                      <div className="es-h">Documents Required</div>
+                      <div className="es-h">Information and documents</div>
                       <div className="es-sub">Singaporean/PR</div>
                       <ul className="es-list">
-                        <li>NRIC or valid Passport (for foreigner)</li>
-                        <li>Deed Poll (if applicable where the Plaintiff has changed his/her name)</li>
-                        <li>Marriage/Revocation Certificate (front and back page)</li>
+                        <li>Identity and marriage details will be retrieved after your consent</li>
+                        <li>Parenting Plan (Form 11), if the application concerns children</li>
+                        <li>Property Plan (Forms 13/14), if the application concerns matrimonial property</li>
                       </ul>
                     </div>
                   </div>

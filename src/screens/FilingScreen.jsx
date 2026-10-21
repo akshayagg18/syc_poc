@@ -1,11 +1,10 @@
-import React, { useState } from 'react';
+import React from 'react';
 import OsFlow from '../components/OsFlow.jsx';
 
 // "Filing of Originating Summons for Divorce" (mockup). Shows the 4-step flow and
 // the document checklist (Originating Summons issued by Court + Case Statement).
 // "Fill up Case Statement" enters the live GenAI filing demo.
 export default function FilingScreen({ onNav }) {
-  const [showFull, setShowFull] = useState(false);
   return (
     <div className="screen">
       <div className="hero lc">
@@ -49,23 +48,12 @@ export default function FilingScreen({ onNav }) {
               <p className="es-p">Filing fee: $12</p>
             </div>
             <div>
-              <div className="es-h">Documents Required</div>
+              <div className="es-h">Information and documents</div>
               <ul className="es-list">
-                <li>NRIC or valid Passport (for foreigner)</li>
-                <li>Deed Poll (if applicable where the Plaintiff has changed his/her name)</li>
-                <li>Marriage/Revocation Certificate (front and back page)</li>
-                {showFull && (
-                  <>
-                    <li>Children's Birth Certificates (if any)</li>
-                    <li>HDB / property statement</li>
-                    <li>CPF statement</li>
-                    <li>Talak / supporting evidence (if applicable)</li>
-                  </>
-                )}
+                <li>Singpass, MCP/SYC, ROMM, MSF/ICA, HDB and CPF information is retrieved after consent.</li>
+                <li>Upload a Parenting Plan (Form 11) only where children arrangements apply.</li>
+                <li>Upload Forms 13 and 14 only where matrimonial property arrangements apply.</li>
               </ul>
-              <span className="cid" onClick={() => setShowFull((v) => !v)}>
-                {showFull ? 'Show less ▲' : 'View full list ▾'}
-              </span>
             </div>
           </div>
           <div className="filing-actions">

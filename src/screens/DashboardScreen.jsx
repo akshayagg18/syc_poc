@@ -21,7 +21,7 @@ export default function DashboardScreen({ onNav }) {
       <div className="page-wrap">
         <div className="dash-salam">Assalamualaikum!</div>
         <div className="dash-welcome">
-          Welcome Dominic D`Silva,
+          Welcome Amin Bin Zainal,
           <span className="dash-update">✎ Update My Particulars</span>
         </div>
         <p className="dash-lead">

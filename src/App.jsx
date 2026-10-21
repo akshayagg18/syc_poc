@@ -1,49 +1,49 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import GovHeader from './components/GovHeader.jsx';
 import OsStepBar from './components/OsStepBar.jsx';
-import SectionSidebar from './components/SectionSidebar.jsx';
-import OsForm from './components/OsForm.jsx';
-import ChatPanel from './components/ChatPanel.jsx';
-import ResumeBanner from './components/ResumeBanner.jsx';
+import ScenarioDemo from './components/ScenarioDemo.jsx';
+import PresenterControl from './components/PresenterControl.jsx';
 import DashboardScreen from './screens/DashboardScreen.jsx';
 import DivorceScreen from './screens/DivorceScreen.jsx';
 import EServicesScreen from './screens/EServicesScreen.jsx';
 import FilingScreen from './screens/FilingScreen.jsx';
-import { createEngine } from './state/createEngine.js';
-import { loadSession, clearSession } from './lib/session.js';
+import { DEFAULT_RULE_CONFIG } from './data/scenarios.js';
+
+const PRESENTER_KEY = 'syc_presenter_config_v1';
+
+function loadPresenter() {
+  try {
+    return { ...DEFAULT_RULE_CONFIG, ...JSON.parse(localStorage.getItem(PRESENTER_KEY)) };
+  } catch { return { ...DEFAULT_RULE_CONFIG }; }
+}
 
 export default function App() {
-  const engineRef = useRef(null);
-  if (!engineRef.current) engineRef.current = createEngine();
-  const engine = engineRef.current;
-
-  // Mirror of engine state that drives React rendering.
-  const [, forceTick] = useState(0);
-  const [lang, setLang] = useState(engine.lang);
-  const [saved, setSaved] = useState(null);
+  const [lang, setLang] = useState('en');
   // Lead-up navigation: dashboard → divorce → eservices → filing → demo.
   const [route, setRoute] = useState('dashboard');
-  const startedRef = useRef(false);
+  const [controlOpen, setControlOpen] = useState(false);
+  const [presenterConfig, setPresenterConfig] = useState(loadPresenter);
+  const [activeRuleConfig, setActiveRuleConfig] = useState(() => ({ ...loadPresenter() }));
+  const [scenarioId, setScenarioId] = useState('10');
+  const [applicationKey, setApplicationKey] = useState(0);
 
   useEffect(() => {
-    engine.onChange = () => {
-      setLang(engine.lang);
-      forceTick((n) => n + 1);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    localStorage.setItem(PRESENTER_KEY, JSON.stringify(presenterConfig));
+  }, [presenterConfig]);
+
+  useEffect(() => {
+    function shortcut(event) {
+      if (event.ctrlKey && event.altKey && event.shiftKey && event.key.toLowerCase() === 'c') {
+        event.preventDefault(); setControlOpen((value) => !value);
+      } else if (event.key === 'Escape') setControlOpen(false);
+    }
+    window.addEventListener('keydown', shortcut);
+    return () => window.removeEventListener('keydown', shortcut);
   }, []);
 
   // Start (or offer to resume) the filing flow the first time we enter the demo.
   function enterDemo() {
     setRoute('demo');
-    if (startedRef.current) return;
-    startedRef.current = true;
-    const existing = loadSession();
-    if (existing && existing.resumeAt) {
-      setSaved(existing);
-    } else {
-      engine.start();
-    }
   }
 
   function navigate(to) {
@@ -51,30 +51,19 @@ export default function App() {
     else setRoute(to);
   }
 
-  function resume() {
-    setSaved(null);
-    engine.restore(loadSession());
+  function launchScenario(id) {
+    localStorage.removeItem('syc_scenario_case_v2');
+    setScenarioId(id);
+    setActiveRuleConfig({ ...presenterConfig });
+    setApplicationKey((value) => value + 1);
+    setRoute('demo');
+    setControlOpen(false);
   }
+
   function startNew() {
-    clearSession();
-    setSaved(null);
-    engine.messages = [];
-    engine.start();
-  }
-  function onSetLang(l) {
-    // Restart the flow in the chosen language (mirrors original setLang behaviour).
-    clearSession();
-    engine.lang = l;
-    engine.step = 1;
-    engine.form = {
-      fields: {}, filled: {}, flash: {}, secDone: {}, talakRows: [], childrenRows: [],
-      showRevocRow: false, showBkRow: false, progressPct: 0, activeSection: 1,
-      unlockedSection: 1, validationIssues: {}, justUnlockedSection: null,
-    };
-    engine.talakData = []; engine.numTalakSessions = 0; engine.witnessState = {};
-    engine.messages = [];
-    setSaved(null);
-    engine.start();
+    localStorage.removeItem('syc_scenario_case_v2');
+    setApplicationKey((value) => value + 1);
+    setRoute('dashboard');
   }
 
   return (
@@ -87,23 +76,10 @@ export default function App() {
       {route === 'filing' && <FilingScreen onNav={navigate} />}
 
       {route === 'demo' && (
-        <>
-          <OsStepBar lang={lang} onSetLang={onSetLang} />
-          {saved && (
-            <ResumeBanner lang={lang} saved={saved} onResume={resume} onStartNew={startNew} />
-          )}
-          <div className="main-layout">
-            <SectionSidebar form={engine.form} />
-            <OsForm lang={lang} form={engine.form} engine={engine} />
-            <ChatPanel
-              engine={engine}
-              lang={lang}
-              messages={engine.messages}
-              progressPct={engine.form.progressPct}
-            />
-          </div>
-        </>
+        <ScenarioDemo key={`${scenarioId}-${applicationKey}`} scenarioId={scenarioId} ruleConfig={activeRuleConfig} lang={lang} onSetLang={setLang} onStartNew={startNew} />
       )}
+      <PresenterControl open={controlOpen} onClose={() => setControlOpen(false)} config={presenterConfig}
+        onChangeConfig={setPresenterConfig} onLaunch={launchScenario} currentScenario={scenarioId} />
     </>
   );
 }

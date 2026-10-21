@@ -3,12 +3,14 @@
   "private": true,
   "version": "0.1.0",
   "type": "module",
-  "description": "Syariah Court Singapore — Originating Summons filing assistant (POC, React + gpt-5.5)",
+  "description": "Syariah Court Singapore — scenario-driven Originating Summons filing assistant POC",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "gen:resources": "node tools/gen-resources.mjs"
+    "gen:resources": "node tools/gen-resources.mjs",
+    "test": "node --test tests/*.test.js",
+    "test:e2e": "playwright test"
   },
   "dependencies": {
     "react": "^18.3.1",
