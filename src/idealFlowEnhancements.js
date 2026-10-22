@@ -14,6 +14,7 @@ const freshFlow = () => ({
 });
 let flow = freshFlow();
 let entryView = 'login';
+let restarting = false;
 
 const safe = (value) => String(value ?? '').replace(/[&<>"']/g, (char) => ({
   '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
@@ -24,6 +25,7 @@ const sameNames = (left, right) => left.length === right.length &&
 const tx = (en, bm) => lang === 'bm' ? bm : en;
 
 function saveFiling() {
+  if (restarting) return;
   const box = document.getElementById('chatBox');
   if (!box) return;
   const fields = {};
@@ -136,6 +138,8 @@ function addFilingStyles() {
     .flow-followup input[type=checkbox]{margin-right:9px}
     .flow-followup .btn{border:1px solid #660d07;margin-top:12px}
     .flow-dash-link{margin-left:8px;background:transparent;color:#f3b6ae;border:1px solid #f3b6ae;padding:4px 9px;border-radius:5px;font-size:10px;cursor:pointer}
+    .flow-restart-link{white-space:nowrap}
+    .flow-followup-restart{float:right;background:transparent;color:#fff;border:1px solid #f3b6ae;border-radius:5px;padding:6px 10px;font:12px 'Lato',sans-serif;cursor:pointer}
     .flow-entry-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px;margin-top:22px}
     .flow-entry-card{border:1px solid #e4dad7;border-radius:9px;background:#fffdfc;padding:22px}
     .flow-entry-card h2{color:#660d07;font-size:19px;margin:0 0 10px}
@@ -151,7 +155,25 @@ function addFilingStyles() {
   link.textContent = tx('Dashboard', 'Papan pemuka');
   link.onclick = () => showFollowup('dashboard');
   document.querySelector('.top-logo')?.appendChild(link);
+  const restart = document.createElement('button');
+  restart.id = 'flow-restart';
+  restart.className = 'flow-dash-link flow-restart-link';
+  restart.textContent = tx('↻ Restart', '↻ Mulai semula');
+  restart.title = tx('Clear this draft and start again', 'Kosongkan draf ini dan mula semula');
+  restart.onclick = () => window.flowRestart();
+  document.querySelector('.top-logo')?.appendChild(restart);
 }
+
+window.flowRestart = function () {
+  const confirmed = window.confirm(tx(
+    'Restart this application? Your current chat, answers, and uploaded-document selections will be cleared.',
+    'Mulakan semula permohonan ini? Perbualan, jawapan dan pilihan dokumen yang dimuat naik akan dikosongkan.',
+  ));
+  if (!confirmed) return;
+  restarting = true;
+  localStorage.removeItem(filingStoreKey);
+  window.parent.location.reload();
+};
 
 window.onload = () => {
   addFilingStyles();
@@ -709,7 +731,9 @@ function showFollowup(view) {
     <div class="flow-followup-card"><p>${tx('Your application information and decisions have been saved under reference', 'Maklumat permohonan dan keputusan anda telah disimpan di bawah rujukan')} <strong>${safe(filing.caseRef)}</strong>.</p>
     <p>${tx('Payment and court issuance would be confirmed by the connected filing service.', 'Pembayaran dan pengeluaran oleh mahkamah akan disahkan oleh perkhidmatan pemfailan yang disambungkan.')}</p>
     <button class="btn btn-primary" onclick="flowNextView('dashboard')">${tx('Return to dashboard', 'Kembali ke papan pemuka')}</button></div>`;
-  panel.innerHTML = `<div class="flow-followup-header">Syariah Court Singapore</div><div class="flow-followup-inner">${content}</div>`;
+  panel.innerHTML = `<div class="flow-followup-header">Syariah Court Singapore
+    <button class="flow-followup-restart" onclick="flowRestart()">${tx('↻ Restart', '↻ Mulai semula')}</button></div>
+    <div class="flow-followup-inner">${content}</div>`;
 }
 
 window.flowNextView = function (view) {

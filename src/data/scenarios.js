@@ -7,7 +7,7 @@ export const RULE_CODES = {
 export const DEFAULT_RULE_CONFIG = {
   [RULE_CODES.CHILD_MCP_OS]: 'warning',
   [RULE_CODES.CHILD_RELIEF_PLAN]: 'warning',
-  [RULE_CODES.PROPERTY_ADDRESS]: 'error',
+  [RULE_CODES.PROPERTY_ADDRESS]: 'warning',
 };
 
 export const RULE_LABELS = {
@@ -76,7 +76,7 @@ export const SCENARIOS = {
     id: '9',
     title: 'Property-address mismatch',
     summary: 'A handwritten Form 13 names a different property from the HDB and OS records.',
-    expected: 'Block progression until a corrected Property Plan is uploaded.',
+    expected: 'Show the address difference and allow correction, re-upload, or confirmed continuation.',
     person: {
       plaintiff: { name: 'Taufiq Bin Sallehin', nric: 'S8678901S', dob: '17 May 1986', citizenship: 'Singapore Citizen' },
       defendant: { name: 'Husna Binte Karim', nric: 'S8789012T', dob: '29 November 1987', citizenship: 'Singapore Citizen' },

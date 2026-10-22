@@ -78,6 +78,24 @@ test('saved draft resumes with the same case and read-only OS details', async ({
   await expect(app.locator('#formPanel input, #formPanel select, #formPanel textarea')).toHaveCount(0);
 });
 
+test('Restart clears the saved chat and returns to the beginning', async ({ page }) => {
+  const app = await reachMarriage(page, '10');
+  await expect(app.locator('#chatBox .ai-bubble')).not.toHaveCount(0);
+
+  page.once('dialog', (dialog) => dialog.dismiss());
+  await app.locator('#flow-restart').click();
+  await expect(app.locator('#flow-marriage-file')).toBeVisible();
+
+  page.once('dialog', (dialog) => dialog.accept());
+  await app.locator('#flow-restart').click();
+  await expect(app.getByText('Access your court services')).toBeVisible();
+  await expect(app.locator('#chatBox .ai-bubble')).toHaveCount(0);
+  expect(await page.evaluate(() => localStorage.getItem('syc_filing_10'))).toBeNull();
+
+  await page.reload();
+  await expect(app.getByText('Access your court services')).toBeVisible();
+});
+
 test('Scenario 9 warns about the handwritten address and requires confirmation to continue', async ({ page }) => {
   const app = await reachMarriage(page, '9');
   await finishMarriage(app, '9');

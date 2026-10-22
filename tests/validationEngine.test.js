@@ -37,12 +37,13 @@ test('corrected Scenario 4 OS children and plan resolve both findings', () => {
   assert.deepEqual(findings, []);
 });
 
-test('Scenario 9 wrong address is blocking and corrected address resolves it', () => {
+test('Scenario 9 wrong address is a warning and corrected address resolves it', () => {
   const scenario = scenarioById('9');
   const wrong = evaluateCase({ scenario, caseData: {}, extraction: { property: { address: '82 Canberra Road' } }, ruleConfig: DEFAULT_RULE_CONFIG });
   assert.equal(wrong.length, 1);
-  assert.equal(wrong[0].severity, 'error');
-  assert.equal(hasOpenError(wrong, 5), true);
+  assert.equal(wrong[0].severity, 'warning');
+  assert.equal(hasOpenError(wrong, 5), false);
+  assert.equal(hasUnacknowledgedWarning(wrong, 5), true);
   const corrected = evaluateCase({ scenario, caseData: {}, extraction: { property: { address: '18 Tampines Street 42, #05-118, Singapore 529201' } }, ruleConfig: DEFAULT_RULE_CONFIG });
   assert.deepEqual(corrected, []);
 });

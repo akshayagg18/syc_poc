@@ -27,7 +27,7 @@ There is no scenario chooser or POC indicator in the applicant interface. A pres
 
 The supplied evidence is under `docs/Scenario N/`. Corrected recovery documents are under `resources/`: `scenario4-parenting-plan-corrected.pdf` and `scenario9-form13-corrected.pdf`. The marriage certificate is mandatory in every case; Parenting and Property Plans are mandatory when those sections apply. Discrepancies are polite warnings with chat-based correction, re-upload, or **Ignore and continue** after a confirmation dialog. Missing documents and expired MCP cannot be skipped.
 
-The Dashboard link saves/returns to the current draft in this browser. Language switching restarts the journey. The OS panel has no edit controls. Payment and completion screens demonstrate the next user steps; they do not perform a transaction or real court submission.
+The Dashboard link saves/returns to the current draft in this browser. A normal or hard browser refresh resumes that draft; use **↻ Restart** and confirm to clear the chat, answers, uploads, and saved draft and return to the beginning. Language switching also restarts the journey. The OS panel has no edit controls. Payment and completion screens demonstrate the next user steps; they do not perform a transaction or real court submission.
 
 ## Verify
 
