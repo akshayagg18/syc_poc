@@ -8,6 +8,7 @@ const freshFlow = () => ({
   uploads: {},
   extraction: {},
   acknowledgements: [],
+  acknowledgementTitles: {},
   phase: 'welcome',
   view: 'filing',
   propertyAddress: filing.property?.osAddress || '',
@@ -23,6 +24,8 @@ const normal = (value) => String(value ?? '').toLowerCase().replace(/[^a-z0-9]/g
 const sameNames = (left, right) => left.length === right.length &&
   [...left].map(normal).sort().every((name, index) => name === [...right].map(normal).sort()[index]);
 const tx = (en, bm) => lang === 'bm' ? bm : en;
+text.en.complete_btn = 'Submit';
+text.bm.complete_btn = 'Hantar';
 
 function saveFiling() {
   if (restarting) return;
@@ -265,6 +268,7 @@ function buildWorkbench() {
     });
     panel.insertBefore(heading, panel.firstChild);
   }
+  setupSplitHandle();
 
   const chat = document.querySelector('.chat-panel');
   const avatar = document.querySelector('.chat-avatar');
@@ -294,6 +298,66 @@ function buildWorkbench() {
   const send = document.getElementById('sendBtn');
   if (send) send.setAttribute('aria-label', tx('Send message', 'Hantar mesej'));
   updateWorkbenchCopy();
+}
+
+const SPLIT_KEY = 'syc_split_v1';
+function setupSplitHandle() {
+  const main = document.querySelector('.main-layout');
+  const panel = document.getElementById('formPanel');
+  const chat = document.querySelector('.chat-panel');
+  if (!main || !panel || !chat || document.getElementById('splitHandle')) return;
+
+  const handle = document.createElement('div');
+  handle.id = 'splitHandle';
+  handle.className = 'split-handle';
+  handle.tabIndex = 0;
+  handle.setAttribute('role', 'separator');
+  handle.setAttribute('aria-orientation', 'vertical');
+  handle.setAttribute('aria-label', tx('Resize the application and assistant panels', 'Ubah saiz panel permohonan dan pembantu'));
+  main.insertBefore(handle, chat);
+
+  // --form-frac is a share of the whole grid, so the rail width has to come out of the maths.
+  function apply(percent) {
+    const total = main.clientWidth;
+    if (!total) return null;
+    const rail = panel.getBoundingClientRect().left - main.getBoundingClientRect().left;
+    const spare = total - rail - handle.offsetWidth;
+    const min = Math.min(300, spare * 0.3) / total * 100;
+    const max = (spare - Math.min(340, spare * 0.35)) / total * 100;
+    const value = Math.round(Math.min(Math.max(percent, min), max) * 10) / 10;
+    main.style.setProperty('--form-frac', `${value}%`);
+    handle.setAttribute('aria-valuenow', String(Math.round(value)));
+    return value;
+  }
+
+  let current = Number(localStorage.getItem(SPLIT_KEY)) || 44;
+  current = apply(current) ?? current;
+
+  function commit() {
+    document.body.classList.remove('is-dragging');
+    localStorage.setItem(SPLIT_KEY, String(current));
+  }
+  handle.addEventListener('pointerdown', (event) => {
+    event.preventDefault();
+    handle.setPointerCapture(event.pointerId);
+    document.body.classList.add('is-dragging');
+  });
+  handle.addEventListener('pointermove', (event) => {
+    if (!handle.hasPointerCapture(event.pointerId)) return;
+    const left = panel.getBoundingClientRect().left;
+    current = apply((event.clientX - left) / main.clientWidth * 100) ?? current;
+  });
+  handle.addEventListener('pointerup', commit);
+  handle.addEventListener('pointercancel', commit);
+  handle.addEventListener('dblclick', () => { current = apply(44) ?? current; commit(); });
+  handle.addEventListener('keydown', (event) => {
+    const step = event.key === 'ArrowLeft' ? -2 : event.key === 'ArrowRight' ? 2 : 0;
+    if (!step) return;
+    event.preventDefault();
+    current = apply(current + step) ?? current;
+    commit();
+  });
+  window.addEventListener('resize', () => { current = apply(current) ?? current; });
 }
 
 function addFilingStyles() {
@@ -599,12 +663,44 @@ function uploadMarkup(type, title, multiple = true) {
     <div id="flow-${type}-status" class="flow-file"></div></div>`;
 }
 
+/** What a complete document has to show us, checked after the pages are read. */
+const REQUIRED_DOCUMENT_FIELDS = {
+  marriage: [
+    [() => tx("Plaintiff's name", 'Nama Plaintif'), (doc) => doc.parties?.plaintiff?.name],
+    [() => tx("Defendant's name", 'Nama Defendan'), (doc) => doc.parties?.defendant?.name],
+    [() => t('venue'), (doc) => doc.venue],
+    [() => t('marriage_date'), (doc) => doc.date],
+    [() => t('cert_no'), (doc) => doc.certNo],
+  ],
+};
+
+function assertRequiredFields(type, document_) {
+  const missing = (REQUIRED_DOCUMENT_FIELDS[type] || [])
+    .filter(([, read]) => !String(read(document_) ?? '').trim())
+    .map(([label]) => label());
+  if (!missing.length) return;
+  throw new Error(tx(
+    `I could not find everything a valid document has to show: ${missing.join(', ')}. Please upload a complete copy, including every page.`,
+    `Saya tidak menemui semua maklumat yang perlu ada pada dokumen yang sah: ${missing.join(', ')}. Sila muat naik salinan lengkap, termasuk setiap halaman.`,
+  ));
+}
+
 function documentResult(type, names) {
   const have = (fragment) => names.some((name) => name.includes(fragment));
   if (type === 'marriage') {
-    if (!have(filing.marriageDocument.front) && !have(filing.marriageDocument.back))
+    const m = filing.marriage;
+    const parties = { plaintiff: { name: filing.person.plaintiff.name }, defendant: { name: filing.person.defendant.name } };
+    // Page 1 carries the registration details; page 2 carries the taklik and the two names only.
+    const pages = {
+      front: { parties, certNo: m.certNo, date: m.date, venue: m.venue, wali: m.wali, mahr: m.mahr },
+      back: { parties },
+    };
+    const read = Object.entries(filing.marriageDocument)
+      .filter(([, fragment]) => have(fragment))
+      .reduce((merged, [page]) => ({ ...merged, ...pages[page] }), { kind: 'marriage-certificate' });
+    if (!read.parties)
       throw new Error(tx('This does not appear to be the marriage certificate for the current application. Please check the document and try again.', 'Ini nampaknya bukan sijil perkahwinan bagi permohonan semasa. Sila semak dokumen dan cuba lagi.'));
-    return { kind: 'marriage-certificate', parties: filing.person, ...filing.marriage };
+    return read;
   }
   if (type === 'children' && filing.id === '4') {
     if (have('scenario4-parenting-plan-corrected')) return {
@@ -648,6 +744,14 @@ function documentResult(type, names) {
   throw new Error(tx('I could not match this document to the current application. Please check the document and try again.', 'Saya tidak dapat memadankan dokumen ini dengan permohonan semasa. Sila semak dokumen dan cuba lagi.'));
 }
 
+/** Renders a block that supersedes the previous one of its kind, so re-uploads do not stack. */
+function addReviewMsg(key, html) {
+  document.querySelectorAll(`#chatBox [data-review="${key}"]`).forEach((node) => node.remove());
+  addMsg(html);
+  const bubble = document.getElementById('chatBox')?.lastElementChild;
+  if (bubble) bubble.dataset.review = key;
+}
+
 window.flowUpload = async function (type, fileList) {
   const files = [...(fileList || [])];
   if (!files.length) return;
@@ -657,6 +761,8 @@ window.flowUpload = async function (type, fileList) {
   await new Promise((resolve) => setTimeout(resolve, 700));
   try {
     const result = documentResult(type, names);
+    assertRequiredFields(type, result);
+    disableLive(); // the previous round's Continue / Ignore buttons must not stay clickable
     flow.uploads[type] = files.map((file) => ({ name: file.name, size: file.size, type: file.type }));
     flow.extraction[type] = result;
     flow.acknowledgements = flow.acknowledgements.filter((item) => !item.startsWith(`${type}.`));
@@ -684,7 +790,7 @@ function afterMarriageUpload() {
   flow.currentFindings = mismatches;
   updateFindingHistory(flow.currentFindings, 'marriage');
   if (mismatches.length) { showWarnings('marriage', marriageNext); return; }
-  addAI(() => addMsg(`<div class="flow-check">${tx('Thank you. The certificate details match the retrieved ROMM record.', 'Terima kasih. Butiran sijil sepadan dengan rekod ROMM yang diperoleh.')}</div>
+  addAI(() => addReviewMsg('marriage-verdict', `<div class="flow-check">${tx('Thank you. The certificate details match the retrieved ROMM record.', 'Terima kasih. Butiran sijil sepadan dengan rekod ROMM yang diperoleh.')}</div>
     <button class="btn btn-secondary live" style="margin-top:8px" onclick="flowMarriageNext()">${t('continue_btn')}</button>`));
 }
 
@@ -726,6 +832,7 @@ function renderClaimedChildren() {
 showChildren = function () {
   nextStep(6);
   flow.phase = 'children';
+  markSectionDone(3);
   if (!flow.claimedChildren.length) {
     renderClaimedChildren();
     markSectionDone(4);
@@ -819,7 +926,7 @@ function afterParentingUpload() {
   const p = flow.extraction.children;
   flow.currentFindings = childrenFindings();
   updateFindingHistory(flow.currentFindings, 'children');
-  addMsg(`<p>${tx('I read these arrangements from the Parenting Plan for verification. The Originating Summons has not been changed.', 'Saya membaca aturan ini daripada Pelan Keibubapaan untuk pengesahan. Saman Pemula tidak diubah.')}</p>
+  addReviewMsg('children', `<p>${tx('I read these arrangements from the Parenting Plan for verification. The Originating Summons has not been changed.', 'Saya membaca aturan ini daripada Pelan Keibubapaan untuk pengesahan. Saman Pemula tidak diubah.')}</p>
     <div class="card">${[['Children',p.planChildren.join(', ')],['Residence',p.residence],['Caregiver',p.caregiver],['Education',p.education],['Custody',p.custody],['Care and control',p.careControl],['Access',p.access],['Defendant agreement',p.agreement]]
       .map(([label,value]) => `<div class="card-row"><div class="card-label">${safe(label)}</div><div class="card-value">${safe(value)}</div></div>`).join('')}</div>`);
   showWarnings('children', () => { markSectionDone(4); showHDB(); });
@@ -862,7 +969,7 @@ function afterPropertyUpload() {
   const p = flow.extraction.property;
   flow.currentFindings = propertyFindings();
   updateFindingHistory(flow.currentFindings, 'property');
-  addMsg(`<p>${tx('I read the following from your Property Plan for verification. The Originating Summons has not been changed.', 'Saya membaca perkara berikut daripada Pelan Harta anda untuk pengesahan. Saman Pemula tidak diubah.')}</p>
+  addReviewMsg('property', `<p>${tx('I read the following from your Property Plan for verification. The Originating Summons has not been changed.', 'Saya membaca perkara berikut daripada Pelan Harta anda untuk pengesahan. Saman Pemula tidak diubah.')}</p>
     <div class="card">${[['Address',p.address],['Arrangement',p.arrangement],['CPF refund',p.cpfRefund],['Mortgage',p.mortgage],['Fees',p.fees],['Timeframe',p.timeframe]]
       .filter(([,value]) => value).map(([label,value]) => `<div class="card-row"><div class="card-label">${safe(label)}</div><div class="card-value">${safe(value)}</div></div>`).join('')}</div>`);
   showWarnings('property', showReliefOptions);
@@ -895,7 +1002,7 @@ function showWarnings(type, next) {
   disableLive();
   const open = (flow.currentFindings || []).filter((finding) => !flow.acknowledgements.includes(finding.id));
   if (!open.length) {
-    addMsg(`<div class="flow-check">${tx('The information reviewed at this step matches the available records.', 'Maklumat yang disemak pada langkah ini sepadan dengan rekod yang tersedia.')}</div>`);
+    addReviewMsg(`${type}-verdict`, `<div class="flow-check">${tx('The information reviewed at this step matches the available records.', 'Maklumat yang disemak pada langkah ini sepadan dengan rekod yang tersedia.')}</div>`);
     next();
     return;
   }
@@ -916,15 +1023,33 @@ window.flowReupload = function (type) {
 window.flowIgnoreWarnings = function (type) {
   const open = (flow.currentFindings || []).filter((finding) => !flow.acknowledgements.includes(finding.id));
   if (!open.length) { warningsNext(type); return; }
-  const confirmed = window.confirm(tx(
-    'Some information still does not match. Would you like to continue using the current information?\n\nOK: Continue with current information\nCancel: Review and re-upload',
-    'Sesetengah maklumat masih tidak sepadan. Adakah anda mahu meneruskan dengan maklumat semasa?\n\nOK: Teruskan dengan maklumat semasa\nCancel: Semak dan muat naik semula',
-  ));
-  if (!confirmed) return;
-  flow.acknowledgements.push(...open.map((finding) => finding.id));
+  disableLive(); addUser(tx('Ignore and continue', 'Abaikan dan teruskan'));
+  addAI(() => addMsg(`<div class="flow-warning"><strong>${tx('Some information still does not match', 'Sesetengah maklumat masih tidak sepadan')}</strong>
+    <p>${tx('Would you like to continue with the information already recorded, or review the document and upload it again?', 'Adakah anda mahu meneruskan dengan maklumat yang telah direkodkan, atau menyemak dokumen dan memuat naiknya semula?')}</p></div>
+    <div class="flow-actions">
+      <button class="btn live" onclick="flowConfirmIgnore('${type}')">${tx('Continue with current information', 'Teruskan dengan maklumat semasa')}</button>
+      <button class="btn btn-secondary live" onclick="flowReviewAgain('${type}')">${tx('Review and re-upload', 'Semak dan muat naik semula')}</button>
+    </div>`));
+};
+
+window.flowConfirmIgnore = function (type) {
+  const open = (flow.currentFindings || []).filter((finding) => !flow.acknowledgements.includes(finding.id));
+  open.forEach((finding) => {
+    flow.acknowledgements.push(finding.id);
+    flow.acknowledgementTitles[finding.id] = finding.title;
+  });
   disableLive(); addUser(tx('Continue with current information', 'Teruskan dengan maklumat semasa'));
   saveFiling();
   warningsNext(type);
+};
+
+window.flowReviewAgain = function (type) {
+  disableLive(); addUser(tx('Review and re-upload', 'Semak dan muat naik semula'));
+  addAI(() => addMsg(`<p>${tx('Please upload the corrected document. I will compare it against the records again.', 'Sila muat naik dokumen yang telah dibetulkan. Saya akan membandingkannya dengan rekod sekali lagi.')}</p>
+    <div class="flow-actions">
+      <button class="btn live" onclick="flowReupload('${type}')">${tx('Re-upload document', 'Muat naik semula dokumen')}</button>
+      <button class="btn btn-secondary live" onclick="flowIgnoreWarnings('${type}')">${tx('Ignore and continue', 'Abaikan dan teruskan')}</button>
+    </div>`));
 };
 
 sendFree = function () {
@@ -961,7 +1086,7 @@ showPreview = function () {
       <div class="doc-section"><div class="doc-label">${t('custody_section')}</div><div class="doc-value">${flow.claimedChildren.length ? flow.claimedChildren.map(safe).join(', ') : t('no')}</div></div>
       <div class="doc-section"><div class="doc-label">${t('property_section')}</div><div class="doc-value">${property ? `${safe(property.hdbAddress)}<br>${safe(reliefValue || '')}` : t('no')}</div></div>
       <div class="doc-section"><div class="doc-label">${t('maint_section')}</div><div class="doc-value">${t('child_nafkah')}: SGD ${safe(childNaf)}/mth · ${t('self_nafkah')}: SGD ${safe(selfNaf)}</div></div>
-      ${flow.acknowledgements.length ? `<div class="doc-section"><div class="doc-label">${tx('Discrepancies acknowledged', 'Perbezaan diakui')}</div><div class="doc-value">${flow.acknowledgements.map(safe).join(', ')}</div></div>` : ''}
+      ${flow.acknowledgements.length ? `<div class="doc-section"><div class="doc-label">${tx('Discrepancies acknowledged', 'Perbezaan diakui')}</div><div class="doc-value">${flow.acknowledgements.map((id) => safe(flow.acknowledgementTitles?.[id] || id)).join('<br>')}</div></div>` : ''}
     </div>
     <label class="check-box"><input type="checkbox" id="flow-declaration" onchange="document.getElementById('flow-submit').disabled=!this.checked">${t('i_declare')}</label>
     <button class="btn btn-primary live" id="flow-submit" disabled onclick="doSubmit()" style="width:100%;margin-top:10px">${t('complete_btn')}</button>`));
