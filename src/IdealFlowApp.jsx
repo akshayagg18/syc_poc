@@ -1,9 +1,11 @@
 import React, { useMemo } from 'react';
 import idealFlowSource from '../docs/syc-form-assistant 1 (ideal happy flow).html?raw';
 import enhancements from './idealFlowEnhancements.js?raw';
+import workbenchStyles from './styles.css?raw';
+import designTokens from '../tokens.css?raw';
 import { getFilingCase } from './data/filingCases.js';
 
-/** Keep the supplied design intact and adapt its journey with local case fixtures. */
+/** Preserve the supplied content and workflow while replacing its visual structure. */
 function applyInitialRedTheme(html) {
   return html
     .replaceAll('#1c3460', '#660d07')
@@ -16,7 +18,7 @@ function applyInitialRedTheme(html) {
         body { font-family: 'Lato', 'Inter', sans-serif; }
         .top-logo, .top-logo #topLogo { font-family: 'Times New Roman', Times, serif; }
         .top-logo #topLogo { color: #fff; }
-      </style></head>`,
+      </style><style>${designTokens}</style><style>${workbenchStyles}</style></head>`,
     );
 }
 

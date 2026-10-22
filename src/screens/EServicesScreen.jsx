@@ -69,13 +69,13 @@ export default function EServicesScreen({ onNav }) {
                       <div className="es-h">Documents Required</div>
                       <div className="es-sub">Singaporean/PR</div>
                       <ul className="es-list">
-                        <li>Marriage/Revocation Certificate (front and back page)</li>
+                        <li>Marriage/Revocation Certificate</li>
                         <li>Children's Birth Certificates</li>
                         <li>Protection Order/Maintenance Order/Conversion Letter to Islam</li>
                       </ul>
                       <div className="es-sub">Foreigners</div>
                       <ul className="es-list">
-                        <li>Marriage/Revocation Certificate (front and back page) [For foreign marriage, please provide a copy of original attested foreign marriage certificate and the attested translation, if applicable.]</li>
+                        <li>Marriage/Revocation Certificate [For foreign marriage, please provide a copy of original attested foreign marriage certificate and the attested translation, if applicable.]</li>
                         <li>Children's Birth Certificates</li>
                       </ul>
                     </div>

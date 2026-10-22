@@ -1,6 +1,6 @@
 # SYC filing-flow presentation
 
-The app presents the supplied SYC ideal flow in the original repository's maroon/red theme, adapted to the latest stakeholder notes. It is a local, frontend-only experience: prefill, retrieval, and document extraction are deterministic fixtures, not live integrations. The Originating Summons panel is read-only; applicant answers and corrections go through Aisha's chat.
+The app presents the supplied SYC ideal flow in the original repository's maroon/red theme, adapted to the latest stakeholder notes. It is a local, frontend-only experience: prefill, retrieval, and document extraction are deterministic fixtures, not live integrations. The Originating Summons panel is read-only. Uploaded documents are verification evidence only and never populate or modify it.
 
 ## Run
 
@@ -11,7 +11,7 @@ npm run dev
 
 Open the local URL printed by Vite, normally `http://localhost:5173`. Alternatively run `./start.sh`. No `.env.local`, API key, backend, or runtime internet connection is needed. Keep this presentation on a controlled local network; do not publish it as a real filing service.
 
-The applicant sees a Singpass-style entry screen, e-Services dashboard, and divorce-service card before Aisha's filing conversation. These screens are simulated; no actual identity login occurs.
+The applicant sees a Singpass-style entry screen and e-Services dashboard, then chooses between the standard **e-Services** route and **SYC Companion**. Choosing SYC Companion opens the guided filing journey and begins with the MCP check, without a separate Litigant-in-Person question. These screens are simulated; no actual identity login occurs.
 
 ## Demonstration cases
 
@@ -19,13 +19,13 @@ There is no scenario chooser or POC indicator in the applicant interface. A pres
 
 | URL suffix | Evidence to upload | Expected result |
 | --- | --- | --- |
-| `?case=10` (default) | `Scenario10_ROMM_1.jpeg` and `_2.jpeg`; then `Scenario10_Form13.docx` and `Scenario10_Form14.docx` | Matching property plan; no discrepancy warning |
-| `?case=9` | `Scenario9_ROMM_1.jpeg` and `_2.jpeg`; then both `Form 13_page 1.jpg` and `Form 13_page 2.jpg` | Handwritten Canberra address differs from HDB/OS Tampines address; confirmation is needed to continue |
-| `?case=4` | `Scenario4_ROMM_1.jpeg` and `_2.jpeg`; then `Scenario4_Form11_PP.docx` | Haziq/Aisyah discrepancies and per-child custody review |
-| `?case=1` | `Scenario1_ROMM_1.jpeg` and `_2.jpeg` | Valid MCP; high-risk indicator without blocking |
+| `?case=10` (default) | `Scenario10_ROMM_1.jpeg`; then `Scenario10_Form13.docx` and `Scenario10_Form14.docx` | Matching property plan; no discrepancy warning |
+| `?case=9` | `Scenario9_ROMM_1.jpeg`; then both `Form 13_page 1.jpg` and `Form 13_page 2.jpg` | Handwritten Canberra address differs from HDB/OS Tampines address; confirmation is needed to continue |
+| `?case=4` | `Scenario4_ROMM_1.jpeg`; then `Scenario4_Form11_PP.docx` | Haziq/Aisyah discrepancies and per-child custody review |
+| `?case=1` | `Scenario1_ROMM_1.jpeg` | Valid MCP; risk indicator present without blocking |
 | `?case=1&eligibility=expired` | None; filing stops before consent | MCP outside six-month period |
 
-The supplied evidence is under `docs/Scenario N/`. Corrected recovery documents are under `resources/`: `scenario4-parenting-plan-corrected.pdf` and `scenario9-form13-corrected.pdf`. The marriage certificate is mandatory in every case; Parenting and Property Plans are mandatory when those sections apply. Discrepancies are polite warnings with chat-based correction, re-upload, or **Ignore and continue** after a confirmation dialog. Missing documents and expired MCP cannot be skipped.
+The supplied evidence is under `docs/Scenario N/`. Corrected recovery documents are under `resources/`: `scenario4-parenting-plan-corrected.pdf` and `scenario9-form13-corrected.pdf`. The marriage certificate is mandatory in every case; Parenting and Property Plans are mandatory when those sections apply. Discrepancies are polite warnings with **Re-upload document** or **Ignore and continue** after a confirmation dialog. A replacement document is rechecked against the existing application; it never changes application values. Missing documents and expired MCP cannot be skipped.
 
 The Dashboard link saves/returns to the current draft in this browser. A normal or hard browser refresh resumes that draft; use **↻ Restart** and confirm to clear the chat, answers, uploads, and saved draft and return to the beginning. Language switching also restarts the journey. The OS panel has no edit controls. Payment and completion screens demonstrate the next user steps; they do not perform a transaction or real court submission.
 

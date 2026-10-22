@@ -24,6 +24,6 @@ test('Scenario 10 requires Forms 13 and 14 together', async () => {
 test('corrected recovery fixtures return reconciled values', async () => {
   const children = await extractFixture({ scenarioId: '4', section: 'children', files: files('scenario4-parenting-plan-corrected.pdf') });
   const property = await extractFixture({ scenarioId: '9', section: 'property', files: files('scenario9-form13-corrected.pdf') });
-  assert.deepEqual(children.planChildren, ['Aisyah Binte Zulkifli']);
+  assert.deepEqual(children.planChildren, ['Haziq Bin Zulkifli', 'Aisyah Binte Zulkifli']);
   assert.equal(property.address, '18 Tampines Street 42, #05-118, Singapore 529201');
 });

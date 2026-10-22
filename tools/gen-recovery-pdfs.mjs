@@ -29,10 +29,12 @@ function makePdf(title, lines) {
 
 const documents = [
   ['scenario4-parenting-plan-corrected.pdf', 'FORM 11 - CORRECTED PARENTING PLAN', [
-    'Child: Aisyah Binte Zulkifli',
+    'Child 1: Haziq Bin Zulkifli (T15123456A)',
+    'Child 2: Aisyah Binte Zulkifli (T18123456B)',
     'Current residence: 31 Sengkang East Way with the Defendant',
     'Proposed residence: 765 Pasir Ris Street 71 with the Plaintiff',
-    'Custody: Joint custody; Care and control: Plaintiff',
+    'Custody: Joint custody for both children',
+    'Care and control: Plaintiff for both children',
     'Access: Reasonable weekends and school holidays to Defendant',
     'Defendant agreement: Confirmed',
   ]],

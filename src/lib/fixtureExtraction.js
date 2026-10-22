@@ -16,13 +16,13 @@ export async function extractFixture({ scenarioId, section, files }) {
       return {
         fixtureId: 'scenario4-parenting-corrected',
         documentType: 'Form 11 — Agreed Parenting Plan',
-        planChildren: ['Aisyah Binte Zulkifli'],
+        planChildren: ['Haziq Bin Zulkifli', 'Aisyah Binte Zulkifli'],
         currentResidence: '31 Sengkang East Way with the Defendant',
         proposedResidence: '765 Pasir Ris Street 71 with the Plaintiff',
         caregiver: 'Plaintiff after divorce',
-        education: 'Continue at current school',
-        custody: 'Joint custody',
-        careControl: 'Plaintiff',
+        education: 'Both children continue at their current schools',
+        custody: 'Joint custody for both children',
+        careControl: 'Plaintiff for both children',
         access: 'Reasonable weekend and school-holiday access to Defendant',
         defendantAgreement: 'Confirmed',
       };

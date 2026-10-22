@@ -4,7 +4,7 @@ import { DEFAULT_RULE_CONFIG, RULE_CODES, scenarioById } from '../src/data/scena
 import { acknowledgeFinding, evaluateCase, hasOpenError, hasUnacknowledgedWarning, identitiesMatchByNric } from '../src/lib/validationEngine.js';
 
 const s4Original = { planChildren: ['Haziq Bin Zulkifli', 'Aisyah Binte Zulkifli'] };
-const s4Corrected = { planChildren: ['Aisyah Binte Zulkifli'] };
+const s4Corrected = { planChildren: ['Haziq Bin Zulkifli', 'Aisyah Binte Zulkifli'] };
 
 test('Scenario 4 produces both discrepancies as warnings by default', () => {
   const scenario = scenarioById('4');
@@ -31,10 +31,12 @@ test('warning acknowledgement changes status and allows the warning gate', () =>
   assert.equal(hasUnacknowledgedWarning(acknowledged, 4), false);
 });
 
-test('corrected Scenario 4 OS children and plan resolve both findings', () => {
+test('corrected Scenario 4 plan matches OS children without altering them', () => {
   const scenario = scenarioById('4');
-  const findings = evaluateCase({ scenario, caseData: { children: ['Aisyah Binte Zulkifli'] }, extraction: { children: s4Corrected }, ruleConfig: DEFAULT_RULE_CONFIG });
-  assert.deepEqual(findings, []);
+  const osChildren = [...scenario.children.os];
+  const findings = evaluateCase({ scenario, caseData: { children: osChildren }, extraction: { children: s4Corrected }, ruleConfig: DEFAULT_RULE_CONFIG });
+  assert.deepEqual(findings.map((item) => item.ruleCode).sort(), [RULE_CODES.CHILD_MCP_OS, RULE_CODES.CHILD_RELIEF_PLAN].sort());
+  assert.deepEqual(osChildren, scenario.children.os);
 });
 
 test('Scenario 9 wrong address is a warning and corrected address resolves it', () => {

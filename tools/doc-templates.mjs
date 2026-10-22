@@ -249,16 +249,19 @@ export const templates = [
         <div class="rule"></div>
         <div class="row"><div class="k">Plaintiff</div><div class="v">Zulkifli Bin Rashid (S9678901G)</div></div>
         <div class="row"><div class="k">Defendant</div><div class="v">Norlina Binte Salim (S9789012H)</div></div>
-        <h3 style="margin:22px 0 8px;color:#7a1f17">1. Child of the current marriage</h3>
-        <div class="row"><div class="k">Name</div><div class="v">Aisyah Binte Zulkifli</div></div>
+        <h3 style="margin:22px 0 8px;color:#7a1f17">1. Children recorded in the application</h3>
+        <div class="row"><div class="k">Child 1</div><div class="v">Haziq Bin Zulkifli</div></div>
+        <div class="row"><div class="k">Birth Certificate</div><div class="v">T15123456A</div></div>
+        <div class="row"><div class="k">Age / Gender</div><div class="v">11 / Male</div></div>
+        <div class="row"><div class="k">Child 2</div><div class="v">Aisyah Binte Zulkifli</div></div>
         <div class="row"><div class="k">Birth Certificate</div><div class="v">T18123456B</div></div>
         <div class="row"><div class="k">Age / Gender</div><div class="v">8 / Female</div></div>
         <h3 style="margin:22px 0 8px;color:#7a1f17">2. Agreed arrangements</h3>
         <div class="row"><div class="k">Residence</div><div class="v">765 Pasir Ris Street 71 with the Plaintiff</div></div>
         <div class="row"><div class="k">Caregiver</div><div class="v">Plaintiff</div></div>
-        <div class="row"><div class="k">Education</div><div class="v">Continue at current school</div></div>
-        <div class="row"><div class="k">Custody</div><div class="v">Joint custody</div></div>
-        <div class="row"><div class="k">Care and control</div><div class="v">Plaintiff</div></div>
+        <div class="row"><div class="k">Education</div><div class="v">Both children continue at their current schools</div></div>
+        <div class="row"><div class="k">Custody</div><div class="v">Joint custody for both children</div></div>
+        <div class="row"><div class="k">Care and control</div><div class="v">Plaintiff for both children</div></div>
         <div class="row"><div class="k">Access</div><div class="v">Reasonable weekend and school-holiday access to Defendant</div></div>
         <div style="margin-top:42px;display:flex;justify-content:space-between;font-size:12px;color:#555"><div>__________________________<br>Plaintiff</div><div>__________________________<br>Defendant</div></div>
       </div>`),

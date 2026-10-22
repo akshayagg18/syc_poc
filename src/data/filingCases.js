@@ -3,6 +3,35 @@ import { scenarioById } from './scenarios.js';
 const pad = (value) => String(value).padStart(2, '0');
 const displayDate = (date) => new Intl.DateTimeFormat('en-SG', { day: '2-digit', month: 'short', year: 'numeric' }).format(date);
 
+export const MCP_REASONS = Object.freeze([
+  'Addiction (Substance abuse)',
+  'Children Related Issues',
+  'Desertion by spouse for more than 3 months',
+  'Domestic Violence',
+  'Extra Marital Affairs/Infidelity',
+  'Financial problem',
+  'Health Issues (chronic illness)',
+  'Incarceration/Imprisonment',
+  'Mental Illness',
+  'Parents/Parents-In-Law',
+  'Personality differences',
+  'Religion Related Issues',
+  'Sex related matters',
+  'Other factors affecting marriage (please specify)',
+]);
+
+const MCP_REASON_BY_CASE = Object.freeze({
+  '1': 'Domestic Violence',
+  '4': 'Children Related Issues',
+  '9': 'Extra Marital Affairs/Infidelity',
+  '10': 'Financial problem',
+});
+
+const HIGH_RISK_MCP_REASONS = new Set([
+  'Addiction (Substance abuse)',
+  'Domestic Violence',
+]);
+
 /** Applicant records are chosen before the applicant interface is mounted. */
 export function getFilingCase(search = '', now = new Date()) {
   const params = new URLSearchParams(search);
@@ -14,6 +43,7 @@ export function getFilingCase(search = '', now = new Date()) {
   completed.setMonth(completed.getMonth() - (expired ? 8 : 2));
   const validUntil = new Date(completed);
   validUntil.setMonth(validUntil.getMonth() + 6);
+  const mcpReason = MCP_REASON_BY_CASE[id];
 
   return {
     ...source,
@@ -25,9 +55,9 @@ export function getFilingCase(search = '', now = new Date()) {
       completionDate: displayDate(completed),
       validUntil: displayDate(validUntil),
       eligible: now <= validUntil,
-      reason: id === '1' ? 'Abuse in the home' : source.ground.note,
+      reason: mcpReason,
     },
-    highRisk: /abuse|violence|cruelty|harm/i.test(id === '1' ? 'Abuse in the home' : source.ground.note),
+    highRisk: HIGH_RISK_MCP_REASONS.has(mcpReason),
     sessionId: `${id}${expired ? '-expired' : ''}`,
     marriageDocument: {
       front: `scenario${id}_romm_1`,
