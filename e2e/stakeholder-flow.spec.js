@@ -1,10 +1,17 @@
 import { test, expect } from 'playwright/test';
 
 const frame = (page) => page.frameLocator('iframe[title="SYC Divorce Navigator"]');
+/** The Singpass screen lists every applicant record; open one and continue as that person. */
+async function chooseIdentity(app, caseId = '10') {
+  await app.getByRole('button', { name: /Log (in with|masuk dengan) Singpass/ }).click();
+  const card = app.locator(`.flow-id-card[data-case="${caseId}"]`);
+  await card.locator('summary').click();
+  await card.getByRole('button', { name: /^(Select|Pilih)/ }).click();
+}
 const liveButton = (app, label) => app.locator('#chatBox button.live:not([disabled])').filter({ hasText: label });
 const clickContinue = (app) => app.locator('#chatBox button.live:not([disabled])').filter({ hasText: /^Continue$/ }).last().click();
-async function enterFiling(app) {
-  await app.getByRole('button', { name: 'Log in with Singpass' }).click();
+async function enterFiling(app, caseId = '10') {
+  await chooseIdentity(app, caseId);
   await app.getByRole('button', { name: 'Start a divorce application' }).click();
   await app.getByRole('radio', { name: /SYC Companion/ }).check();
   await app.getByRole('button', { name: 'Submit' }).click();
@@ -13,7 +20,7 @@ async function enterFiling(app) {
 async function reachMarriage(page, caseId = '10', suffix = '') {
   await page.goto(`/?case=${caseId}${suffix}`);
   const app = frame(page);
-  await enterFiling(app);
+  await enterFiling(app, caseId);
   await expect(app.getByText(/retrieved your Marriage Counselling Programme record/)).toBeVisible();
   await expect(app.getByText(/within the required six-month period/)).toHaveCount(0);
   await expect(app.getByText('Valid until', { exact: true })).toHaveCount(0);
@@ -40,7 +47,7 @@ async function finishMarriage(app, caseId) {
 test('expired MCP blocks filing before consent', async ({ page }) => {
   await page.goto('/?case=1&eligibility=expired');
   const app = frame(page);
-  await enterFiling(app);
+  await enterFiling(app, '1');
   await expect(app.getByText('We are unable to continue with this application yet')).toBeVisible();
   await expect(app.getByRole('button', { name: 'Yes, I consent.' })).toHaveCount(0);
   await expect(app.getByText('Risk indicator')).toBeVisible();
@@ -278,4 +285,42 @@ test('acknowledged discrepancies are named in the summary, not shown as ids', as
   await expect(summary).toContainText('The Property Plan address differs from the records');
   await expect(summary).not.toContainText('property.address_mismatch');
   await expect(app.locator('#flow-submit')).toHaveText('Submit');
+});
+
+test('the Singpass screen offers every applicant record and drives the filing', async ({ page }) => {
+  await page.goto('/');
+  const app = frame(page);
+  await app.getByRole('button', { name: 'Log in with Singpass' }).click();
+  await expect(app.locator('.flow-id-card')).toHaveCount(4);
+
+  const card = app.locator('.flow-id-card[data-case="4"]');
+  await expect(card).toContainText('Zulkifli Bin Rashid');
+  await card.locator('summary').click();
+  // The expanded record shows what will be written into the Originating Summons.
+  await expect(card).toContainText('Norlina Binte Salim');
+  await expect(card).toContainText('890456');
+  await expect(card).toContainText('Haziq Bin Zulkifli');
+  await expect(card).toContainText('Aisyah Binte Zulkifli');
+  await expect(card).toContainText('Children Related Issues');
+
+  await card.getByRole('button', { name: /^Select/ }).click();
+  await expect(app.getByText('Welcome, Zulkifli Bin Rashid')).toBeVisible();
+
+  await app.getByRole('button', { name: 'Start a divorce application' }).click();
+  await app.getByRole('radio', { name: /SYC Companion/ }).check();
+  await app.getByRole('button', { name: 'Submit' }).click();
+  await clickContinue(app);
+  await app.getByRole('button', { name: 'Yes, I consent.' }).click();
+  await expect(app.locator('#f_p_name')).toHaveText('Zulkifli Bin Rashid');
+  await expect(app.locator('#f_d_name')).toHaveText('Norlina Binte Salim');
+});
+
+test('the scales of justice mark appears on every header', async ({ page }) => {
+  await page.goto('/?case=10');
+  const app = frame(page);
+  await expect(app.locator('.flow-followup-header .court-mark svg')).toBeVisible();
+  await enterFiling(app, '10');
+  await expect(app.locator('.top-logo .court-mark svg')).toBeVisible();
+  await app.locator('#flow-followup').waitFor({ state: 'detached' });
+  await expect(app.locator('.top-logo .court-mark svg')).toBeVisible();
 });

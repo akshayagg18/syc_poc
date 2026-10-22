@@ -5,6 +5,8 @@ import workbenchStyles from './styles.css?raw';
 import designTokens from '../tokens.css?raw';
 import { getFilingCase } from './data/filingCases.js';
 
+const CASE_IDS = ['1', '4', '9', '10'];
+
 const FONT_HREF = 'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Source+Serif+4:wght@400;600;700&display=swap';
 
 /** Preserve the supplied content and workflow while replacing its visual structure. */
@@ -25,10 +27,14 @@ function applyInitialRedTheme(html) {
 }
 
 export default function IdealFlowApp() {
-  const profile = JSON.stringify(getFilingCase(window.location.search)).replaceAll('<', '\\u003c');
+  // Every applicant record travels into the frame, so the Singpass screen can offer all of them.
+  const search = window.location.search;
+  const requested = getFilingCase(search).id;
+  const cases = Object.fromEntries(CASE_IDS.map((id) => [id, getFilingCase(id === requested ? search : `?case=${id}`)]));
+  const profiles = JSON.stringify(cases).replaceAll('<', '\\u003c');
   const idealFlow = applyInitialRedTheme(idealFlowSource).replace(
     '</body>',
-    `<script>window.SYC_FILING_CASE = ${profile};</script><script>${enhancements}</script></body>`,
+    `<script>window.SYC_FILING_CASES = ${profiles};window.SYC_FILING_CASE = window.SYC_FILING_CASES[${JSON.stringify(requested)}];</script><script>${enhancements}</script></body>`,
   );
 
   return (

@@ -1,7 +1,13 @@
 /* Runs after the supplied ideal-flow script, inside its iframe. */
-const filing = window.SYC_FILING_CASE;
-const legacyFilingStoreKeys = [`syc_filing_${filing.sessionId}`, `syc_filing_v2_${filing.sessionId}`, `syc_filing_v3_${filing.sessionId}`, `syc_filing_v4_${filing.sessionId}`];
-const filingStoreKey = `syc_filing_v5_${filing.sessionId}`;
+let filing = window.SYC_FILING_CASE;
+let legacyFilingStoreKeys = [];
+let filingStoreKey = '';
+function useFilingCase(id) {
+  filing = window.SYC_FILING_CASES?.[id] || filing;
+  legacyFilingStoreKeys = ['', '_v2', '_v3', '_v4'].map((suffix) => `syc_filing${suffix}_${filing.sessionId}`);
+  filingStoreKey = `syc_filing_v5_${filing.sessionId}`;
+}
+useFilingCase(filing.id);
 const freshFlow = () => ({
   claimedChildren: [...(filing.children.os || [])],
   custody: {},
@@ -24,6 +30,9 @@ const normal = (value) => String(value ?? '').toLowerCase().replace(/[^a-z0-9]/g
 const sameNames = (left, right) => left.length === right.length &&
   [...left].map(normal).sort().every((name, index) => name === [...right].map(normal).sort()[index]);
 const tx = (en, bm) => lang === 'bm' ? bm : en;
+/** Scales of justice, carried by every header. */
+const courtMark = `<span class="court-mark" aria-hidden="true"><svg viewBox="0 0 40 40" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="20" cy="8" r="1.6"/><path d="M20 9.6v21.4M13 31h14M7 13h26M7 13v3M33 13v3M1.5 16a5.5 5.5 0 0 0 11 0M27.5 16a5.5 5.5 0 0 0 11 0"/></svg></span>`;
+const courtWordmark = () => `${courtMark}<span>Syariah Court Singapore</span>`;
 text.en.complete_btn = 'Submit';
 text.bm.complete_btn = 'Hantar';
 
@@ -146,7 +155,7 @@ function setFocusedSection(id, { work = false } = {}) {
   document.body.classList.remove('is-reviewing');
   syncJourney();
   const panel = document.getElementById('formPanel');
-  if (panel) panel.scrollTo({ top: 0, behavior: 'smooth' });
+  if (panel?.scrollTop) panel.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
 function setReviewMode(enabled) {
@@ -234,7 +243,7 @@ function buildWorkbench() {
   const logo = document.querySelector('.top-logo');
   const actionButtons = [...document.querySelectorAll('.flow-dash-link')];
   if (logo) {
-    logo.innerHTML = `<span class="court-mark" aria-hidden="true"><svg viewBox="0 0 40 40" fill="none"><path d="M20 5v27M11 11h18M14 11l-7 13h14l-7-13Zm12 0-7 13h14l-7-13ZM12 34h16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span id="topLogo">Syariah Court Singapore</span>`;
+    logo.innerHTML = `${courtMark}<span id="topLogo">Syariah Court Singapore</span>`;
   }
   if (topBar) {
     const actions = document.createElement('div');
@@ -381,8 +390,10 @@ function addFilingStyles() {
     .flow-actions{display:flex;flex-wrap:wrap;gap:6px;margin-top:9px}
     .flow-actions .btn{border:1px solid #c99d98}
     .flow-risk{border-left:4px solid #bf6a50;background:#fff2ef;border-radius:4px;padding:10px;margin:8px 0;font-size:11.5px}
-    .flow-followup{position:fixed;inset:0;background:#fff;z-index:500;overflow:auto;font-family:'Lato','Inter',sans-serif}
-    .flow-followup-header{background:#660d07;color:#fff;padding:18px 26px;font-family:Georgia,serif;font-size:23px}
+    .flow-followup{position:fixed;inset:0;background:#fff;z-index:500;overflow:auto;font-family:'Inter',system-ui,sans-serif}
+    .flow-followup-header{background:#660d07;color:#fff;padding:18px 26px;font-family:var(--font-display);font-size:23px}
+    .flow-followup-header .court-mark{width:30px;height:30px;display:inline-grid;place-items:center;vertical-align:-7px;margin-right:10px}
+    .flow-followup-header .court-mark svg{width:100%;height:100%;display:block}
     .flow-followup-inner{max-width:940px;margin:30px auto;padding:0 22px;color:#333}
     .flow-followup-inner h1{font-size:25px;color:#660d07;margin-bottom:12px}
     .flow-followup-inner p{font-size:14px;line-height:1.6;margin:9px 0}
@@ -394,8 +405,29 @@ function addFilingStyles() {
     .flow-followup .btn{border:1px solid #660d07;margin-top:12px}
     .flow-dash-link{margin-left:8px;background:transparent;color:#f3b6ae;border:1px solid #f3b6ae;padding:4px 9px;border-radius:5px;font-size:10px;cursor:pointer}
     .flow-restart-link{white-space:nowrap}
-    .flow-followup-restart{float:right;background:transparent;color:#fff;border:1px solid #f3b6ae;border-radius:5px;padding:6px 10px;font:12px 'Lato',sans-serif;cursor:pointer}
+    .flow-followup-restart{float:right;background:transparent;color:#fff;border:1px solid #f3b6ae;border-radius:5px;padding:6px 10px;font:12px 'Inter',system-ui,sans-serif;cursor:pointer}
     .flow-entry-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px;margin-top:22px}
+    .flow-id-list{display:grid;gap:10px;margin-top:22px}
+    .flow-id-card{border:1px solid #e4dad7;border-radius:10px;background:#fffdfc;overflow:hidden}
+    .flow-id-card[open]{border-color:#660d07}
+    .flow-id-card summary{display:flex;align-items:center;gap:12px;padding:14px 16px;cursor:pointer;list-style:none}
+    .flow-id-card summary::-webkit-details-marker{display:none}
+    .flow-id-card summary:hover{background:#fdf5f4}
+    .flow-id-avatar{width:36px;height:36px;border-radius:50%;background:#f3b6ae;color:#660d07;display:flex;align-items:center;justify-content:center;font-weight:800;flex-shrink:0}
+    .flow-id-who{display:flex;flex-direction:column;min-width:0}
+    .flow-id-who small{color:#7a6b68;font-size:11.5px}
+    .flow-id-open{margin-left:auto;font-size:11.5px;font-weight:700;color:#660d07;white-space:nowrap}
+    .flow-id-card[open] .flow-id-open{opacity:.55}
+    .flow-id-body{padding:0 16px 16px;border-top:1px solid #f0e6e4}
+    .flow-id-note{font-size:11.5px;color:#7a6b68;margin:12px 0}
+    .flow-id-body section{margin-bottom:12px}
+    .flow-id-body h3{font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:#9a8a87;margin-bottom:5px}
+    .flow-id-rows{display:grid;gap:2px}
+    .flow-id-rows>div{display:grid;grid-template-columns:minmax(120px,34%) 1fr;gap:10px;padding:4px 0;border-bottom:1px solid #f4ecea;font-size:12px}
+    .flow-id-rows>div:last-child{border-bottom:0}
+    .flow-id-rows dt{color:#7a6b68}
+    .flow-id-rows dd{font-weight:600;overflow-wrap:anywhere}
+    .flow-id-empty{font-size:12px;color:#7a6b68}
     .flow-entry-card{border:1px solid #e4dad7;border-radius:9px;background:#fffdfc;padding:22px}
     .flow-entry-card h2{color:#660d07;font-size:19px;margin:0 0 10px}
     .flow-entry-card p{margin:0 0 12px}
@@ -493,14 +525,19 @@ window.flowRestart = function () {
   window.parent.location.reload();
 };
 
-window.onload = () => {
-  addFilingStyles();
-  buildWorkbench();
-  legacyFilingStoreKeys.forEach((key) => localStorage.removeItem(key));
+function resetApplicantState() {
+  flow = freshFlow();
   addlData = {
     p: { edu: filing.education.plaintiff, occ: filing.occupation.plaintiff, sal: normal(filing.salary.plaintiff).replace(/[^0-9]/g, '') || '5800' },
     d: { edu: filing.education.defendant, occ: filing.occupation.defendant, sal: normal(filing.salary.defendant).replace(/[^0-9]/g, '') || '6200' },
   };
+}
+
+window.onload = () => {
+  addFilingStyles();
+  buildWorkbench();
+  legacyFilingStoreKeys.forEach((key) => localStorage.removeItem(key));
+  resetApplicantState();
   let saved;
   try { saved = JSON.parse(localStorage.getItem(filingStoreKey)); } catch { saved = null; }
   if (saved?.flow) {
@@ -520,7 +557,10 @@ function showEntry(view) {
   if (view === 'login') content = `<div class="flow-entry-kicker">SYC e-Services</div><h1>${tx('Access your court services', 'Akses perkhidmatan mahkamah anda')}</h1>
     <p>${tx('Continue securely to review your available filing services.', 'Teruskan dengan selamat untuk menyemak perkhidmatan pemfailan yang tersedia.')}</p>
     <div class="flow-entry-grid"><div class="flow-entry-card"><h2>Singpass</h2><p>${tx('Use your digital identity to continue.', 'Gunakan identiti digital anda untuk meneruskan.')}</p>
-      <button class="btn btn-primary" onclick="flowEntryNext('dashboard')">${tx('Log in with Singpass', 'Log masuk dengan Singpass')}</button></div></div>`;
+      <button class="btn btn-primary" onclick="flowEntryNext('identity')">${tx('Log in with Singpass', 'Log masuk dengan Singpass')}</button></div></div>`;
+  if (view === 'identity') content = `<div class="flow-entry-kicker">Singpass</div><h1>${tx('Choose a Singpass identity', 'Pilih identiti Singpass')}</h1>
+    <p>${tx('Open an identity to see the records that will be retrieved into the Originating Summons, then continue with it.', 'Buka satu identiti untuk melihat rekod yang akan diperoleh ke dalam Saman Pemula, kemudian teruskan dengannya.')}</p>
+    <div class="flow-id-list">${Object.keys(window.SYC_FILING_CASES || {}).map(identityCard).join('')}</div>`;
   if (view === 'dashboard') content = `<div class="flow-entry-kicker">SYC e-Services</div><h1>${tx('Welcome', 'Selamat datang')}, ${safe(filing.person.plaintiff.name)}</h1>
     <p>${tx('Choose the service you need today.', 'Pilih perkhidmatan yang anda perlukan hari ini.')}</p>
     <div class="flow-entry-grid"><div class="flow-entry-card"><h2>${tx('Divorce filing', 'Pemfailan perceraian')}</h2>
@@ -545,11 +585,77 @@ function showEntry(view) {
       <p>${tx('You have chosen to complete the Originating Summons using the standard e-Services form.', 'Anda telah memilih untuk melengkapkan Saman Pemula menggunakan borang e-Perkhidmatan standard.')}</p>
       <button class="btn btn-primary" onclick="flowEntryNext('dashboard')">${tx('Return to e-Services dashboard', 'Kembali ke papan pemuka e-Perkhidmatan')}</button>
       <button class="btn" style="margin-left:8px" onclick="flowEntryNext('services')">${tx('Change filing method', 'Tukar kaedah pemfailan')}</button></div>`;
-  panel.innerHTML = `<div class="flow-followup-header">Syariah Court Singapore
+  panel.innerHTML = `<div class="flow-followup-header">${courtWordmark()}
     <span class="flow-entry-lang"><button class="${lang === 'en' ? 'active' : ''}" onclick="flowEntryLanguage('en')">EN</button>
     <button class="${lang === 'bm' ? 'active' : ''}" onclick="flowEntryLanguage('bm')">BM</button></span></div>
     <div class="flow-followup-inner">${content}</div>`;
 }
+
+function recordRows(rows) {
+  const present = rows.filter(([, value]) => value);
+  if (!present.length) return `<p class="flow-id-empty">${tx('No record held.', 'Tiada rekod disimpan.')}</p>`;
+  return `<dl class="flow-id-rows">${present.map(([label, value]) =>
+    `<div><dt>${safe(label)}</dt><dd>${safe(value)}</dd></div>`).join('')}</dl>`;
+}
+
+function identityCard(id) {
+  const record = window.SYC_FILING_CASES[id];
+  const p = record.person.plaintiff, d = record.person.defendant, m = record.marriage, property = record.property;
+  const groups = [
+    [`Singpass · ${tx('Applicant', 'Pemohon')}`, [
+      [t('full_name'), p.name], [t('nric'), p.nric], [t('dob'), p.dob],
+      [tx('Citizenship', 'Kewarganegaraan'), p.citizenship],
+      [tx('Education', 'Pendidikan'), record.education.plaintiff],
+      [tx('Occupation', 'Pekerjaan'), record.occupation.plaintiff],
+      [tx('Gross salary', 'Gaji kasar'), record.salary.plaintiff],
+    ]],
+    [`ROMM · ${tx('Spouse', 'Pasangan')}`, [
+      [t('full_name'), d.name], [t('nric'), d.nric], [t('dob'), d.dob],
+      [tx('Citizenship', 'Kewarganegaraan'), d.citizenship],
+      [tx('Occupation', 'Pekerjaan'), record.occupation.defendant],
+      [tx('Gross salary', 'Gaji kasar'), record.salary.defendant],
+    ]],
+    [`ROMM · ${tx('Marriage', 'Perkahwinan')}`, [
+      [t('cert_no'), m.certNo], [t('marriage_date'), m.date], [t('venue'), m.venue],
+      ['Wali', m.wali], [tx('Mahr', 'Mas kahwin'), m.mahr],
+    ]],
+    [`MSF · ${tx('Counselling record', 'Rekod kaunseling')}`, [
+      [tx('Reference', 'Rujukan'), record.mcp.number],
+      [tx('Completed', 'Selesai'), record.mcp.completionDate],
+      [tx('Valid until', 'Sah sehingga'), record.mcp.validUntil],
+      [tx('Reason recorded', 'Sebab direkodkan'), record.mcp.reason],
+      [tx('Risk indicator', 'Petunjuk risiko'), record.highRisk ? tx('Present', 'Hadir') : tx('Absent', 'Tiada')],
+    ]],
+    [`MSF / ICA · ${t('children')}`, record.children.registry.map((child) =>
+      [child.name, `${child.birthCert} · ${child.relationship}`])],
+    [`HDB / CPF · ${tx('Matrimonial property', 'Harta sepencarian')}`, property ? [
+      [tx('Address', 'Alamat'), property.hdbAddress],
+      [tx('Flat type', 'Jenis flat'), property.type],
+      [tx('Ownership', 'Pemilikan'), property.holding],
+      [tx('Valuation', 'Penilaian'), property.value],
+      [tx('Outstanding loan', 'Pinjaman tertunggak'), property.loan],
+      [tx('CPF OA balances', 'Baki CPF OA'), property.cpf && `${tx('Applicant', 'Pemohon')} ${property.cpf.plaintiffOA} · ${tx('Spouse', 'Pasangan')} ${property.cpf.defendantOA}`],
+    ] : []],
+  ];
+  return `<details class="flow-id-card" data-case="${safe(id)}">
+    <summary><span class="flow-id-avatar" aria-hidden="true">${safe(p.name.slice(0, 1))}</span>
+      <span class="flow-id-who"><strong>${safe(p.name)}</strong><small>${safe(p.nric)} · ${tx('Singpass identity', 'Identiti Singpass')}</small></span>
+      <span class="flow-id-open">${tx('View records', 'Lihat rekod')}</span></summary>
+    <div class="flow-id-body">
+      <p class="flow-id-note">${tx('These records are retrieved and written into the Originating Summons after consent.', 'Rekod ini diperoleh dan ditulis ke dalam Saman Pemula selepas persetujuan.')}</p>
+      ${groups.map(([title, rows]) => `<section><h3>${safe(title)}</h3>${recordRows(rows)}</section>`).join('')}
+      <button class="btn btn-primary" onclick="flowSelectIdentity('${safe(id)}')">${tx('Select', 'Pilih')} ${safe(p.name)}</button>
+    </div></details>`;
+}
+
+window.flowSelectIdentity = function (id) {
+  useFilingCase(id);
+  legacyFilingStoreKeys.forEach((key) => localStorage.removeItem(key));
+  localStorage.removeItem(filingStoreKey);
+  resetApplicantState();
+  drawProg();
+  showEntry('dashboard');
+};
 
 window.flowEntryLanguage = function (chosen) {
   lang = chosen;
@@ -744,12 +850,14 @@ function documentResult(type, names) {
   throw new Error(tx('I could not match this document to the current application. Please check the document and try again.', 'Saya tidak dapat memadankan dokumen ini dengan permohonan semasa. Sila semak dokumen dan cuba lagi.'));
 }
 
-/** Renders a block that supersedes the previous one of its kind, so re-uploads do not stack. */
-function addReviewMsg(key, html) {
-  document.querySelectorAll(`#chatBox [data-review="${key}"]`).forEach((node) => node.remove());
+/** Everything Aisha says about one document, so the next upload can replace all of it. */
+function clearReview(type) {
+  document.querySelectorAll(`#chatBox [data-review="${type}"]`).forEach((node) => node.remove());
+}
+function addReviewMsg(type, html) {
   addMsg(html);
   const bubble = document.getElementById('chatBox')?.lastElementChild;
-  if (bubble) bubble.dataset.review = key;
+  if (bubble) bubble.dataset.review = type;
 }
 
 window.flowUpload = async function (type, fileList) {
@@ -757,12 +865,14 @@ window.flowUpload = async function (type, fileList) {
   if (!files.length) return;
   const status = document.getElementById(`flow-${type}-status`);
   const names = files.map((file) => file.name.toLowerCase());
+  clearReview(type); // only the newest answer about this document stays on screen
   if (status) status.textContent = tx('Reading your document…', 'Membaca dokumen anda…');
   await new Promise((resolve) => setTimeout(resolve, 700));
   try {
     const result = documentResult(type, names);
     assertRequiredFields(type, result);
     disableLive(); // the previous round's Continue / Ignore buttons must not stay clickable
+
     flow.uploads[type] = files.map((file) => ({ name: file.name, size: file.size, type: file.type }));
     flow.extraction[type] = result;
     flow.acknowledgements = flow.acknowledgements.filter((item) => !item.startsWith(`${type}.`));
@@ -773,7 +883,8 @@ window.flowUpload = async function (type, fileList) {
     if (type === 'property') afterPropertyUpload();
   } catch (error) {
     if (status) status.textContent = error.message;
-    addAI(() => addMsg(`<p>${safe(error.message)}</p>`));
+    disableLive();
+    addAI(() => addReviewMsg(type, `<p>${safe(error.message)}</p>`));
   }
 };
 
@@ -790,7 +901,7 @@ function afterMarriageUpload() {
   flow.currentFindings = mismatches;
   updateFindingHistory(flow.currentFindings, 'marriage');
   if (mismatches.length) { showWarnings('marriage', marriageNext); return; }
-  addAI(() => addReviewMsg('marriage-verdict', `<div class="flow-check">${tx('Thank you. The certificate details match the retrieved ROMM record.', 'Terima kasih. Butiran sijil sepadan dengan rekod ROMM yang diperoleh.')}</div>
+  addAI(() => addReviewMsg('marriage', `<div class="flow-check">${tx('Thank you. The certificate details match the retrieved ROMM record.', 'Terima kasih. Butiran sijil sepadan dengan rekod ROMM yang diperoleh.')}</div>
     <button class="btn btn-secondary live" style="margin-top:8px" onclick="flowMarriageNext()">${t('continue_btn')}</button>`));
 }
 
@@ -1002,7 +1113,7 @@ function showWarnings(type, next) {
   disableLive();
   const open = (flow.currentFindings || []).filter((finding) => !flow.acknowledgements.includes(finding.id));
   if (!open.length) {
-    addReviewMsg(`${type}-verdict`, `<div class="flow-check">${tx('The information reviewed at this step matches the available records.', 'Maklumat yang disemak pada langkah ini sepadan dengan rekod yang tersedia.')}</div>`);
+    addReviewMsg(type, `<div class="flow-check">${tx('The information reviewed at this step matches the available records.', 'Maklumat yang disemak pada langkah ini sepadan dengan rekod yang tersedia.')}</div>`);
     next();
     return;
   }
@@ -1134,7 +1245,7 @@ function showFollowup(view) {
     <div class="flow-followup-card"><p>${tx('Your application information and decisions have been saved under reference', 'Maklumat permohonan dan keputusan anda telah disimpan di bawah rujukan')} <strong>${safe(filing.caseRef)}</strong>.</p>
     <p>${tx('Payment and court issuance would be confirmed by the connected filing service.', 'Pembayaran dan pengeluaran oleh mahkamah akan disahkan oleh perkhidmatan pemfailan yang disambungkan.')}</p>
     <button class="btn btn-primary" onclick="flowNextView('dashboard')">${tx('Return to dashboard', 'Kembali ke papan pemuka')}</button></div>`;
-  panel.innerHTML = `<div class="flow-followup-header">Syariah Court Singapore
+  panel.innerHTML = `<div class="flow-followup-header">${courtWordmark()}
     <button class="flow-followup-restart" onclick="flowRestart()">${tx('↻ Restart', '↻ Mulai semula')}</button></div>
     <div class="flow-followup-inner">${content}</div>`;
 }

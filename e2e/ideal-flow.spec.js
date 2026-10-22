@@ -1,5 +1,12 @@
 import { test, expect } from 'playwright/test';
 
+async function chooseIdentity(app, caseId) {
+  await app.getByRole('button', { name: /Log (in with|masuk dengan) Singpass/ }).click();
+  const card = app.locator(`.flow-id-card[data-case="${caseId}"]`);
+  await card.locator('summary').click();
+  await card.getByRole('button', { name: /^(Select|Pilih)/ }).click();
+}
+
 test('runs the supplied ideal flow in the initial red theme', async ({ page }) => {
   await page.goto('/');
   const app = page.frameLocator('iframe[title="SYC Divorce Navigator"]');
@@ -7,7 +14,7 @@ test('runs the supplied ideal flow in the initial red theme', async ({ page }) =
   await expect(app.getByText('Access your court services')).toBeVisible();
   await expect(app.getByRole('button', { name: /Scenario|POC|Presenter/i })).toHaveCount(0);
 
-  await app.getByRole('button', { name: 'Log in with Singpass' }).click();
+  await chooseIdentity(app, '10');
   await app.getByRole('button', { name: 'Start a divorce application' }).click();
   await expect(app.getByRole('radio', { name: /e-Services/ })).toBeVisible();
   await expect(app.getByRole('radio', { name: /SYC Companion/ })).toBeVisible();
@@ -32,7 +39,7 @@ test('preserves the Bahasa Melayu restart behavior from the reference flow', asy
   await page.goto('/');
   const app = page.frameLocator('iframe[title="SYC Divorce Navigator"]');
   await app.locator('#flow-followup').getByRole('button', { name: 'BM' }).click();
-  await app.getByRole('button', { name: 'Log masuk dengan Singpass' }).click();
+  await chooseIdentity(app, '10');
   await app.getByRole('button', { name: 'Mulakan permohonan perceraian' }).click();
   await app.getByRole('radio', { name: /SYC Companion/ }).check();
   await app.getByRole('button', { name: 'Hantar' }).click();
@@ -43,7 +50,7 @@ test('preserves the Bahasa Melayu restart behavior from the reference flow', asy
 test('offers a standard e-Services handoff without entering the Companion chat', async ({ page }) => {
   await page.goto('/');
   const app = page.frameLocator('iframe[title="SYC Divorce Navigator"]');
-  await app.getByRole('button', { name: 'Log in with Singpass' }).click();
+  await chooseIdentity(app, '10');
   await app.getByRole('button', { name: 'Start a divorce application' }).click();
   await app.getByRole('radio', { name: /e-Services/ }).check();
   await app.getByRole('button', { name: 'Submit' }).click();
