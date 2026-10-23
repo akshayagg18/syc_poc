@@ -81,27 +81,77 @@ test('consent sources use one visual theme and chat bubbles fit their content', 
   expect(presentation.shortBubbleWidth).toBeLessThan(presentation.longBubbleWidth);
 });
 
-test('marriage certificate is required and the OS preview has no edit controls', async ({ page }) => {
+test('filing mode banner title stays legible on the maroon surface', async ({ page }) => {
+  await page.goto('/?case=10');
+  const app = frame(page);
+  await chooseIdentity(app, '10');
+  await app.getByRole('button', { name: 'Start a divorce application' }).click();
+  const title = app.getByRole('heading', { name: 'Filing of Originating Summons for Divorce' });
+  await expect(title).toBeVisible();
+  const colors = await title.evaluate((node) => ({
+    foreground: getComputedStyle(node).color,
+    background: getComputedStyle(node.closest('.flow-mode-banner')).backgroundColor,
+  }));
+  expect(colors.foreground).not.toBe('rgb(0, 0, 0)');
+  expect(colors.foreground).not.toBe(colors.background);
+});
+
+test('at least one marriage certificate is required and multiple files are accepted', async ({ page }) => {
   const app = await reachMarriage(page, '10');
-  await expect(app.locator('#flow-marriage-file')).not.toHaveAttribute('multiple');
+  const marriageUpload = app.locator('#flow-marriage-file');
+  await expect(marriageUpload).toHaveAttribute('multiple', '');
+  await expect(app.getByText(/Upload at least one marriage certificate file/)).toBeVisible();
   await expect(app.locator('#formPanel input, #formPanel select, #formPanel textarea')).toHaveCount(0);
   await app.locator('#inputBox').fill('continue');
   await app.locator('#inputBox').press('Enter');
   await expect(app.getByText('Please upload the marriage certificate before continuing.')).toBeVisible();
   await expect(app.locator('#f_m_cert')).not.toBeEmpty();
+
+  await marriageUpload.setInputFiles([
+    'docs/Scenario 10/Scenario10_ROMM_1.jpeg',
+    'docs/Scenario 10/Scenario10_ROMM_2.jpeg',
+  ]);
+  await expect(app.locator('#flow-marriage-status')).toContainText('Scenario10_ROMM_1.jpeg');
+  await expect(app.locator('#flow-marriage-status')).toContainText('Scenario10_ROMM_2.jpeg');
+  await expect(app.getByText(/certificate details match the retrieved ROMM record/)).toBeVisible();
 });
 
-test('OS and Aisha containers stay within their panels on a narrow screen', async ({ page }) => {
+test('half-screen keeps progress above draggable side-by-side panels without overflow', async ({ page }) => {
   await page.setViewportSize({ width: 700, height: 760 });
   const app = await reachMarriage(page, '10');
-  const overflow = await app.locator('body').evaluate(() => ({
-    body: document.body.scrollWidth - document.body.clientWidth,
-    form: document.querySelector('#formPanel').scrollWidth - document.querySelector('#formPanel').clientWidth,
-    chat: document.querySelector('#chatBox').scrollWidth - document.querySelector('#chatBox').clientWidth,
-  }));
-  expect(overflow.body).toBeLessThanOrEqual(1);
-  expect(overflow.form).toBeLessThanOrEqual(1);
-  expect(overflow.chat).toBeLessThanOrEqual(1);
+  const layout = await app.locator('body').evaluate(() => {
+    const box = (selector) => document.querySelector(selector).getBoundingClientRect();
+    const rail = box('.journey-rail');
+    const form = box('#formPanel');
+    const handle = box('#splitHandle');
+    const chat = box('.chat-panel');
+    return {
+      bodyOverflow: document.body.scrollWidth - document.body.clientWidth,
+      formOverflow: document.querySelector('#formPanel').scrollWidth - document.querySelector('#formPanel').clientWidth,
+      chatOverflow: document.querySelector('#chatBox').scrollWidth - document.querySelector('#chatBox').clientWidth,
+      railAbovePanels: rail.bottom <= form.top + 1 && rail.bottom <= chat.top + 1,
+      panelsSideBySide: form.right <= handle.left + 1 && handle.right <= chat.left + 1,
+      panelTopDifference: Math.abs(form.top - chat.top),
+      handleDisplay: getComputedStyle(document.querySelector('#splitHandle')).display,
+    };
+  });
+  expect(layout.bodyOverflow).toBeLessThanOrEqual(1);
+  expect(layout.formOverflow).toBeLessThanOrEqual(1);
+  expect(layout.chatOverflow).toBeLessThanOrEqual(1);
+  expect(layout.railAbovePanels).toBe(true);
+  expect(layout.panelsSideBySide).toBe(true);
+  expect(layout.panelTopDifference).toBeLessThanOrEqual(2);
+  expect(layout.handleDisplay).not.toBe('none');
+
+  const handle = app.locator('#splitHandle');
+  const before = (await app.locator('.chat-panel').boundingBox()).width;
+  const handleBox = await handle.boundingBox();
+  await page.mouse.move(handleBox.x + handleBox.width / 2, handleBox.y + handleBox.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(handleBox.x - 50, handleBox.y + handleBox.height / 2, { steps: 6 });
+  await page.mouse.up();
+  const after = (await app.locator('.chat-panel').boundingBox()).width;
+  expect(after).toBeGreaterThan(before + 30);
 });
 
 test('unknown document does not create an extraction result', async ({ page }) => {
@@ -138,7 +188,7 @@ test('Restart clears the saved chat and returns to the beginning', async ({ page
   await app.locator('#flow-restart').click();
   await expect(app.getByText('Access your court services')).toBeVisible();
   await expect(app.locator('#chatBox .ai-bubble')).toHaveCount(0);
-  expect(await page.evaluate(() => localStorage.getItem('syc_filing_v5_10'))).toBeNull();
+  expect(await page.evaluate(() => localStorage.getItem('syc_filing_v6_10'))).toBeNull();
 
   await page.reload();
   await expect(app.getByText('Access your court services')).toBeVisible();
@@ -152,7 +202,9 @@ test('Scenario 9 warns about the handwritten address and requires confirmation t
     'docs/Scenario 9/Form 13_page 1.jpg', 'docs/Scenario 9/Form 13_page 2.jpg',
   ]);
   await expect(app.getByText('The Property Plan address differs from the records')).toBeVisible();
+  await expect(app.locator('.flow-warning[data-finding-id="property.address_mismatch"]')).toHaveCount(1);
   await expect(app.getByText('82 Canberra Road').first()).toBeVisible();
+  await expect(app.getByText('Signed before a Commissioner for Oaths')).toBeVisible();
   await app.getByRole('button', { name: 'Ignore and continue' }).click();
   await liveButton(app, 'Review and re-upload').click();
   await expect(app.getByText('The Property Plan address differs from the records')).toBeVisible();
@@ -199,6 +251,7 @@ test('Scenario 4 checks custody and care and control for each child', async ({ p
 });
 
 test('Scenario 10 proceeds without discrepancy through agreement and payment', async ({ page }) => {
+  await page.setViewportSize({ width: 700, height: 760 });
   const app = await reachMarriage(page, '10');
   await finishMarriage(app, '10');
   await clickContinue(app);
@@ -207,9 +260,30 @@ test('Scenario 10 proceeds without discrepancy through agreement and payment', a
     'docs/Scenario 10/Scenario10_Form13.docx',
     'docs/Scenario 10/Scenario10_Form14.docx',
   ]);
+  await expect(app.getByText('No discrepancies found')).toBeVisible();
   await expect(app.getByText(/How would you like the property arrangement/)).toBeVisible();
+  await expect(app.locator('#chatBox .flow-warning, #chatBox .upload-error, #chatBox .inline-error')).toHaveCount(0);
   await expect(app.getByText('The Property Plan address differs from the records')).toHaveCount(0);
   await app.getByRole('button', { name: /Transfer Defendant's share to Plaintiff/ }).click();
+  await expect(app.getByRole('button', { name: 'Confirm Maintenance' })).toBeVisible();
+  const maintenance = app.locator('.ai-bubble').filter({ hasText: 'MAINTENANCE & ALIMONY' }).last();
+  await expect(maintenance).toBeVisible();
+  const maintenanceLayout = await maintenance.evaluate((bubble) => {
+    const chat = bubble.closest('.chat-panel');
+    const chatRect = chat.getBoundingClientRect();
+    const fields = [...bubble.querySelectorAll('.fbox, .fgrid, .fg, .sgdi, .sgdi input')];
+    return {
+      fieldCount: fields.length,
+      overflow: fields.some((field) => {
+        const rect = field.getBoundingClientRect();
+        return rect.left < chatRect.left - 1 || rect.right > chatRect.right + 1;
+      }),
+      horizontalScroll: chat.scrollWidth - chat.clientWidth,
+    };
+  });
+  expect(maintenanceLayout.fieldCount).toBeGreaterThan(0);
+  expect(maintenanceLayout.overflow).toBe(false);
+  expect(maintenanceLayout.horizontalScroll).toBeLessThanOrEqual(1);
   await app.getByRole('button', { name: 'Confirm Maintenance' }).click();
   await app.getByRole('button', { name: 'No — None declared' }).click();
   await app.locator('#flow-declaration').check();

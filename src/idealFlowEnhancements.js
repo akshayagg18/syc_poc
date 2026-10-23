@@ -4,8 +4,8 @@ let legacyFilingStoreKeys = [];
 let filingStoreKey = '';
 function useFilingCase(id) {
   filing = window.SYC_FILING_CASES?.[id] || filing;
-  legacyFilingStoreKeys = ['', '_v2', '_v3', '_v4'].map((suffix) => `syc_filing${suffix}_${filing.sessionId}`);
-  filingStoreKey = `syc_filing_v5_${filing.sessionId}`;
+  legacyFilingStoreKeys = ['', '_v2', '_v3', '_v4', '_v5'].map((suffix) => `syc_filing${suffix}_${filing.sessionId}`);
+  filingStoreKey = `syc_filing_v6_${filing.sessionId}`;
 }
 useFilingCase(filing.id);
 const freshFlow = () => ({
@@ -758,12 +758,17 @@ showMarriage = function () {
       <div class="card-row"><div class="card-label">${t('cert_no')}</div><div class="card-value">${safe(m.certNo)}</div></div>
       <div class="card-row"><div class="card-label">${t('marriage_date')}</div><div class="card-value">${safe(m.date)}</div></div>
       <div class="card-row"><div class="card-label">${t('venue')}</div><div class="card-value">${safe(m.venue)}</div></div></div>
-    ${uploadMarkup('marriage',tx('Marriage certificate', 'Sijil perkahwinan'),false)}`));
+    ${uploadMarkup('marriage',tx('Marriage certificate', 'Sijil perkahwinan'))}`));
 };
 
 function uploadMarkup(type, title, multiple = true) {
+  const prompt = type === 'marriage'
+    ? tx('Upload at least one marriage certificate file. You may select multiple files or pages together. Images, PDF and DOCX are accepted.', 'Muat naik sekurang-kurangnya satu fail sijil perkahwinan. Anda boleh memilih berbilang fail atau halaman bersama-sama. Imej, PDF dan DOCX diterima.')
+    : multiple
+      ? tx('Select the relevant pages together. Images, PDF and DOCX are accepted.', 'Pilih halaman yang berkaitan bersama-sama. Imej, PDF dan DOCX diterima.')
+      : tx('Images, PDF and DOCX are accepted.', 'Imej, PDF dan DOCX diterima.');
   return `<div class="flow-upload"><strong>${title}</strong>
-    <p class="flow-prompt">${multiple ? tx('Select the relevant pages together. Images, PDF and DOCX are accepted.', 'Pilih halaman yang berkaitan bersama-sama. Imej, PDF dan DOCX diterima.') : tx('Images, PDF and DOCX are accepted.', 'Imej, PDF dan DOCX diterima.')}</p>
+    <p class="flow-prompt">${prompt}</p>
     <p class="flow-verification-note">${tx('This document is used only to verify the information already recorded. Uploading it will not change the Originating Summons.', 'Dokumen ini hanya digunakan untuk mengesahkan maklumat yang telah direkodkan. Memuat naiknya tidak akan mengubah Saman Pemula.')}</p>
     <input id="flow-${type}-file" type="file"${multiple ? ' multiple' : ''} accept="image/*,.pdf,.docx" onchange="flowUpload('${type}',this.files)">
     <div id="flow-${type}-status" class="flow-file"></div></div>`;
@@ -826,23 +831,19 @@ function documentResult(type, names) {
   }
   if (type === 'property' && filing.id === '9') {
     if (have('scenario9-form13-corrected')) return {
-      kind: 'property-plan', address: filing.property.hdbAddress,
-      arrangement: "Defendant's share transferred to Plaintiff", agreement: 'Signed',
+      kind: 'property-plan', ...filing.property.plan,
+      documentType: 'Form 13 — Corrected Agreed Matrimonial Property Plan',
+      address: filing.property.hdbAddress,
     };
     if (have('form 13_page 1') && have('form 13_page 2')) return {
-      kind: 'property-plan', address: '82 Canberra Road',
-      arrangement: "Defendant's share transferred to Plaintiff", agreement: 'Signed',
+      kind: 'property-plan', ...filing.property.plan,
     };
     if (have('form 13_page 1') || have('form 13_page 2'))
       throw new Error(tx('Please select both pages of the Property Plan together.', 'Sila pilih kedua-dua halaman Pelan Harta bersama-sama.'));
   }
   if (type === 'property' && filing.id === '10') {
     if (have('scenario10_form13') && have('scenario10_form14')) return {
-      kind: 'property-plan', address: filing.property.hdbAddress,
-      arrangement: "Option 5 — Defendant's share transferred to Plaintiff",
-      cpfRefund: "Defendant's CPF monies used for the flat",
-      mortgage: 'Plaintiff bears 100% · SGD 255,000', fees: 'Plaintiff bears 100%',
-      timeframe: 'Within 6 months of the court order', agreement: 'Confirmed',
+      kind: 'property-plan', ...filing.property.plan,
     };
     if (have('scenario10_form13') || have('scenario10_form14'))
       throw new Error(tx('Please select Forms 13 and 14 together.', 'Sila pilih Borang 13 dan 14 bersama-sama.'));
@@ -1080,10 +1081,13 @@ function afterPropertyUpload() {
   const p = flow.extraction.property;
   flow.currentFindings = propertyFindings();
   updateFindingHistory(flow.currentFindings, 'property');
+  const verified = flow.currentFindings.length === 0
+    ? `<div class="flow-check"><strong>${tx('No discrepancies found', 'Tiada perbezaan ditemui')}</strong><br>${tx('The Property Plan address and property particulars match the connected HDB and Originating Summons records.', 'Alamat dan butiran Pelan Harta sepadan dengan rekod HDB dan Saman Pemula yang disambungkan.')}</div>`
+    : '';
   addReviewMsg('property', `<p>${tx('I read the following from your Property Plan for verification. The Originating Summons has not been changed.', 'Saya membaca perkara berikut daripada Pelan Harta anda untuk pengesahan. Saman Pemula tidak diubah.')}</p>
-    <div class="card">${[['Address',p.address],['Arrangement',p.arrangement],['CPF refund',p.cpfRefund],['Mortgage',p.mortgage],['Fees',p.fees],['Timeframe',p.timeframe]]
-      .filter(([,value]) => value).map(([label,value]) => `<div class="card-row"><div class="card-label">${safe(label)}</div><div class="card-value">${safe(value)}</div></div>`).join('')}</div>`);
-  showWarnings('property', showReliefOptions);
+    <div class="card">${[['Document',p.documentType],['Address',p.address],['Flat type',p.flatType],['Holding',p.holding],['Arrangement',p.arrangement],['Consideration',p.consideration],['CPF refund',p.cpfRefund],['Mortgage',p.mortgage],['Fees',p.fees],['Timeframe',p.timeframe],['Defendant agreement',p.defendantAgreement]]
+      .filter(([,value]) => value).map(([label,value]) => `<div class="card-row"><div class="card-label">${safe(label)}</div><div class="card-value">${safe(value)}</div></div>`).join('')}</div>${verified}`);
+  showWarnings('property', showReliefOptions, false);
 }
 
 function showReliefOptions() {
@@ -1109,11 +1113,11 @@ function warningsNext(type) {
   if (type === 'property') showReliefOptions();
 }
 
-function showWarnings(type, next) {
+function showWarnings(type, next, showSuccess = true) {
   disableLive();
   const open = (flow.currentFindings || []).filter((finding) => !flow.acknowledgements.includes(finding.id));
   if (!open.length) {
-    addReviewMsg(type, `<div class="flow-check">${tx('The information reviewed at this step matches the available records.', 'Maklumat yang disemak pada langkah ini sepadan dengan rekod yang tersedia.')}</div>`);
+    if (showSuccess) addReviewMsg(type, `<div class="flow-check">${tx('The information reviewed at this step matches the available records.', 'Maklumat yang disemak pada langkah ini sepadan dengan rekod yang tersedia.')}</div>`);
     next();
     return;
   }

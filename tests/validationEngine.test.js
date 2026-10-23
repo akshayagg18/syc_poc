@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { DEFAULT_RULE_CONFIG, RULE_CODES, scenarioById } from '../src/data/scenarios.js';
 import { acknowledgeFinding, evaluateCase, hasOpenError, hasUnacknowledgedWarning, identitiesMatchByNric } from '../src/lib/validationEngine.js';
+import { extractFixture } from '../src/lib/fixtureExtraction.js';
 
 const s4Original = { planChildren: ['Haziq Bin Zulkifli', 'Aisyah Binte Zulkifli'] };
 const s4Corrected = { planChildren: ['Haziq Bin Zulkifli', 'Aisyah Binte Zulkifli'] };
@@ -50,9 +51,14 @@ test('Scenario 9 wrong address is a warning and corrected address resolves it', 
   assert.deepEqual(corrected, []);
 });
 
-test('Scenario 10 is a no-finding false-positive control', () => {
+test('Scenario 10 complete Forms 13 and 14 are a no-finding false-positive control', async () => {
   const scenario = scenarioById('10');
-  const findings = evaluateCase({ scenario, caseData: {}, extraction: { property: { address: scenario.property.hdbAddress } }, ruleConfig: DEFAULT_RULE_CONFIG });
+  const property = await extractFixture({
+    scenarioId: '10',
+    section: 'property',
+    files: [{ name: 'Scenario10_Form13.docx' }, { name: 'Scenario10_Form14.docx' }],
+  });
+  const findings = evaluateCase({ scenario, caseData: {}, extraction: { property }, ruleConfig: DEFAULT_RULE_CONFIG });
   assert.deepEqual(findings, []);
 });
 

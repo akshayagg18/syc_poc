@@ -24,3 +24,15 @@ test('MCP eligibility is determined from the six-month deadline', () => {
   assert.equal(getFilingCase('?case=1', now).mcp.eligible, true);
   assert.equal(getFilingCase('?case=1&eligibility=expired', now).mcp.eligible, false);
 });
+
+test('Scenario 9 and 10 property fixtures reflect the supplied evidence', () => {
+  const scenario9 = getFilingCase('?case=9', now);
+  assert.equal(scenario9.property.plan.address, '82 Canberra Road');
+  assert.notEqual(scenario9.property.plan.address, scenario9.property.hdbAddress);
+
+  const scenario10 = getFilingCase('?case=10', now);
+  assert.equal(scenario10.property.plan.address, scenario10.property.hdbAddress);
+  assert.equal(scenario10.property.plan.holding, scenario10.property.holding);
+  assert.equal(scenario10.property.plan.flatType, scenario10.property.type);
+  assert.match(scenario10.property.plan.arrangement, /Option 5/);
+});
